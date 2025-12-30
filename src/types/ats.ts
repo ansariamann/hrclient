@@ -1,0 +1,119 @@
+// FSM States as defined by backend
+export type CandidateState = 
+  | 'TO_REVIEW'
+  | 'INTERVIEW_SCHEDULED'
+  | 'SELECTED'
+  | 'JOINED'
+  | 'REJECTED'
+  | 'LEFT_COMPANY';
+
+// Allowed transitions for client portal
+export type ClientAction = 
+  | 'SCHEDULE_INTERVIEW'
+  | 'SELECT'
+  | 'REJECT'
+  | 'MARK_LEFT_COMPANY';
+
+export interface Candidate {
+  id: string;
+  applicationId: string;
+  name: string;
+  currentState: CandidateState;
+  skills: string[];
+  experienceSummary: string;
+  resumeUrl?: string;
+  allowedActions: ClientAction[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApplicationTimeline {
+  id: string;
+  candidateId: string;
+  state: CandidateState;
+  timestamp: string;
+  actor: 'client' | 'system' | 'hr';
+  note?: string;
+}
+
+export interface ScheduleInterviewPayload {
+  candidateId: string;
+  scheduledDate: string;
+  mode: 'in_person' | 'video' | 'phone';
+  notes?: string;
+}
+
+export interface RejectPayload {
+  candidateId: string;
+  reason: RejectReason;
+  feedback: string;
+}
+
+export type RejectReason = 
+  | 'skill_mismatch'
+  | 'experience_insufficient'
+  | 'culture_fit'
+  | 'salary_expectation'
+  | 'other';
+
+export interface LeftCompanyPayload {
+  candidateId: string;
+  reason: LeftReason;
+  feedback: string;
+  lastWorkingDate?: string;
+}
+
+export type LeftReason = 
+  | 'resigned'
+  | 'terminated'
+  | 'contract_ended'
+  | 'other';
+
+export interface TokenValidationResult {
+  valid: boolean;
+  clientId?: string;
+  clientName?: string;
+  allowedApplicationIds?: string[];
+  expiresAt?: string;
+  error?: 'expired' | 'invalid' | 'revoked';
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// FSM State to allowed actions mapping (frontend reference only - backend is source of truth)
+export const STATE_ALLOWED_ACTIONS: Record<CandidateState, ClientAction[]> = {
+  TO_REVIEW: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
+  INTERVIEW_SCHEDULED: ['SELECT', 'REJECT'],
+  SELECTED: ['REJECT'],
+  JOINED: ['MARK_LEFT_COMPANY'],
+  REJECTED: [],
+  LEFT_COMPANY: [],
+};
+
+export const STATE_LABELS: Record<CandidateState, string> = {
+  TO_REVIEW: 'To Review',
+  INTERVIEW_SCHEDULED: 'Interview Scheduled',
+  SELECTED: 'Selected',
+  JOINED: 'Joined',
+  REJECTED: 'Rejected',
+  LEFT_COMPANY: 'Left Company',
+};
+
+export const REJECT_REASON_LABELS: Record<RejectReason, string> = {
+  skill_mismatch: 'Skills do not match requirements',
+  experience_insufficient: 'Insufficient experience',
+  culture_fit: 'Culture fit concerns',
+  salary_expectation: 'Salary expectations mismatch',
+  other: 'Other reason',
+};
+
+export const LEFT_REASON_LABELS: Record<LeftReason, string> = {
+  resigned: 'Resigned voluntarily',
+  terminated: 'Employment terminated',
+  contract_ended: 'Contract period ended',
+  other: 'Other reason',
+};
