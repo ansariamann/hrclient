@@ -19,7 +19,7 @@ const stateColors: Record<CandidateState, string> = {
 
 export function KanbanColumn({ state, candidates, onCandidateClick }: KanbanColumnProps) {
   return (
-    <div className="kanban-column min-w-[280px] max-w-[320px] flex-1">
+    <div className="kanban-column flex flex-col">
       <div className="mb-3 flex items-center gap-2">
         <div className={`h-2.5 w-2.5 rounded-full ${stateColors[state]}`} />
         <h2 className="text-sm font-semibold text-foreground">
