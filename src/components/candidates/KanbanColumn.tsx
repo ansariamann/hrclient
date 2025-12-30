@@ -19,20 +19,20 @@ const stateColors: Record<CandidateState, string> = {
 
 export function KanbanColumn({ state, candidates, onCandidateClick }: KanbanColumnProps) {
   return (
-    <div className="kanban-column flex flex-col">
-      <div className="mb-3 flex items-center gap-2">
+    <div className="kanban-column flex h-full flex-col rounded-xl bg-muted/30 p-4">
+      <div className="mb-4 flex items-center gap-2">
         <div className={`h-2.5 w-2.5 rounded-full ${stateColors[state]}`} />
         <h2 className="text-sm font-semibold text-foreground">
           {STATE_LABELS[state]}
         </h2>
-        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
+        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-xs font-medium text-muted-foreground">
           {candidates.length}
         </span>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
         {candidates.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-border/50 p-6 text-center">
+          <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-border/40 p-6">
             <p className="text-sm text-muted-foreground">No candidates</p>
           </div>
         ) : (

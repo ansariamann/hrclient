@@ -31,7 +31,7 @@ export function KanbanBoard({ candidates, onCandidateUpdate }: KanbanBoardProps)
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-h-[600px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {VISIBLE_STATES.map((state) => (
           <KanbanColumn
             key={state}
