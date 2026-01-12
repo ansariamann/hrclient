@@ -7,7 +7,8 @@ import { RecentRequests } from '@/components/dashboard/RecentRequests';
 import { CandidateDetailModal } from '@/components/candidates/CandidateDetailModal';
 import { apiClient } from '@/lib/api';
 import type { Candidate } from '@/types/ats';
-import { Loader2, RefreshCw, Users, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Users, AlertCircle, CalendarCheck } from 'lucide-react';
+import { isToday } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
@@ -58,6 +59,13 @@ export default function Dashboard() {
   if (!isAuthenticated) {
     return null;
   }
+
+  // Count interviews scheduled for today
+  const interviewsToday = candidates.filter(
+    c => c.currentState === 'INTERVIEW_SCHEDULED' && isToday(new Date(c.updatedAt))
+  ).length;
+  
+  const totalInterviews = candidates.filter(c => c.currentState === 'INTERVIEW_SCHEDULED').length;
 
   return (
     <AppLayout>
@@ -117,6 +125,45 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
+            {/* Today's Stats */}
+            <div className="mb-6 grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border bg-card p-4 transition-all hover:shadow-md">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                    <CalendarCheck className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{interviewsToday}</p>
+                    <p className="text-sm text-muted-foreground">Interviews Today</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-4 transition-all hover:shadow-md">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <CalendarCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{totalInterviews}</p>
+                    <p className="text-sm text-muted-foreground">Total Scheduled</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-4 transition-all hover:shadow-md">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                    <Users className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {candidates.filter(c => c.currentState === 'TO_REVIEW').length}
+                    </p>
+                    <p className="text-sm text-muted-foreground">To Review</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <RecentRequests 
               candidates={candidates} 
               onViewCandidate={setSelectedCandidate} 
