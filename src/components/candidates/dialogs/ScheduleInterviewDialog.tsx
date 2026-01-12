@@ -40,6 +40,8 @@ export function ScheduleInterviewDialog({
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [mode, setMode] = useState<ScheduleInterviewPayload['mode']>('video');
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [interviewerName, setInterviewerName] = useState('');
   const [notes, setNotes] = useState('');
   const { toast } = useToast();
 
@@ -63,6 +65,8 @@ export function ScheduleInterviewDialog({
         candidateId: candidate.id,
         scheduledDate: dateTime.toISOString(),
         mode,
+        roundNumber,
+        interviewerName: interviewerName.trim() || undefined,
         notes: notes.trim() || undefined,
       };
 
@@ -88,6 +92,8 @@ export function ScheduleInterviewDialog({
     setScheduledDate('');
     setScheduledTime('');
     setMode('video');
+    setRoundNumber(1);
+    setInterviewerName('');
     setNotes('');
     onClose();
   };
@@ -130,18 +136,45 @@ export function ScheduleInterviewDialog({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="round">Round Number</Label>
+              <Select value={String(roundNumber)} onValueChange={(v) => setRoundNumber(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Round 1</SelectItem>
+                  <SelectItem value="2">Round 2</SelectItem>
+                  <SelectItem value="3">Round 3</SelectItem>
+                  <SelectItem value="4">Round 4</SelectItem>
+                  <SelectItem value="5">Round 5</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mode">Interview Mode</Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as ScheduleInterviewPayload['mode'])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="video">Video Call</SelectItem>
+                  <SelectItem value="phone">Phone Call</SelectItem>
+                  <SelectItem value="in_person">In Person</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="mode">Interview Mode</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as ScheduleInterviewPayload['mode'])}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="video">Video Call</SelectItem>
-                <SelectItem value="phone">Phone Call</SelectItem>
-                <SelectItem value="in_person">In Person</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="interviewer">Interviewer Name (Optional)</Label>
+            <Input
+              id="interviewer"
+              value={interviewerName}
+              onChange={(e) => setInterviewerName(e.target.value)}
+              placeholder="e.g., John Smith"
+            />
           </div>
 
           <div className="space-y-2">

@@ -90,22 +90,121 @@ export const mockCandidates: Candidate[] = [
 
 export const mockTimeline: Record<string, ApplicationTimeline[]> = {
   '1': [
-    { id: 't1', candidateId: '1', state: 'TO_REVIEW', timestamp: '2024-12-20T10:00:00Z', actor: 'system' },
+    { id: 't1', candidateId: '1', eventType: 'state_change', state: 'TO_REVIEW', timestamp: '2024-12-20T10:00:00Z', actor: 'system' },
   ],
   '3': [
-    { id: 't3-1', candidateId: '3', state: 'TO_REVIEW', timestamp: '2024-12-15T08:00:00Z', actor: 'system' },
-    { id: 't3-2', candidateId: '3', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-12-20T14:00:00Z', actor: 'client', note: 'Video interview scheduled for Dec 30' },
+    { id: 't3-1', candidateId: '3', eventType: 'state_change', state: 'TO_REVIEW', timestamp: '2024-12-15T08:00:00Z', actor: 'system' },
+    { id: 't3-2', candidateId: '3', eventType: 'state_change', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-12-18T14:00:00Z', actor: 'client' },
+    { 
+      id: 't3-3', 
+      candidateId: '3', 
+      eventType: 'interview_round', 
+      timestamp: '2024-12-20T10:00:00Z', 
+      actor: 'client',
+      note: 'Technical screening with engineering team',
+      interviewDetails: { roundNumber: 1, mode: 'video', interviewerName: 'John Smith', scheduledDate: '2024-12-20T10:00:00Z' }
+    },
+    { 
+      id: 't3-4', 
+      candidateId: '3', 
+      eventType: 'feedback', 
+      timestamp: '2024-12-20T11:30:00Z', 
+      actor: 'client',
+      note: 'Strong technical skills, good problem-solving approach. Recommended for next round.',
+      feedbackDetails: { roundNumber: 1, rating: 4, recommendation: 'yes' }
+    },
+    { 
+      id: 't3-5', 
+      candidateId: '3', 
+      eventType: 'interview_round', 
+      timestamp: '2024-12-26T14:00:00Z', 
+      actor: 'client',
+      note: 'System design round with senior architects',
+      interviewDetails: { roundNumber: 2, mode: 'video', interviewerName: 'Sarah Johnson', scheduledDate: '2024-12-26T14:00:00Z' }
+    },
   ],
   '5': [
-    { id: 't5-1', candidateId: '5', state: 'TO_REVIEW', timestamp: '2024-12-10T14:00:00Z', actor: 'system' },
-    { id: 't5-2', candidateId: '5', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-12-15T10:00:00Z', actor: 'client' },
-    { id: 't5-3', candidateId: '5', state: 'SELECTED', timestamp: '2024-12-24T09:00:00Z', actor: 'client', note: 'Excellent interview performance' },
+    { id: 't5-1', candidateId: '5', eventType: 'state_change', state: 'TO_REVIEW', timestamp: '2024-12-10T14:00:00Z', actor: 'system' },
+    { id: 't5-2', candidateId: '5', eventType: 'state_change', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-12-12T10:00:00Z', actor: 'client' },
+    { 
+      id: 't5-3', 
+      candidateId: '5', 
+      eventType: 'interview_round', 
+      timestamp: '2024-12-15T10:00:00Z', 
+      actor: 'client',
+      note: 'Portfolio review and design challenge',
+      interviewDetails: { roundNumber: 1, mode: 'video', interviewerName: 'Mike Chen', scheduledDate: '2024-12-15T10:00:00Z' }
+    },
+    { 
+      id: 't5-4', 
+      candidateId: '5', 
+      eventType: 'feedback', 
+      timestamp: '2024-12-15T12:00:00Z', 
+      actor: 'client',
+      note: 'Exceptional portfolio. Creative solutions and strong design thinking.',
+      feedbackDetails: { roundNumber: 1, rating: 5, recommendation: 'strong_yes' }
+    },
+    { 
+      id: 't5-5', 
+      candidateId: '5', 
+      eventType: 'interview_round', 
+      timestamp: '2024-12-20T14:00:00Z', 
+      actor: 'client',
+      note: 'Cultural fit interview with leadership',
+      interviewDetails: { roundNumber: 2, mode: 'in_person', interviewerName: 'Emily Davis', scheduledDate: '2024-12-20T14:00:00Z' }
+    },
+    { 
+      id: 't5-6', 
+      candidateId: '5', 
+      eventType: 'feedback', 
+      timestamp: '2024-12-20T16:00:00Z', 
+      actor: 'client',
+      note: 'Great cultural fit. Aligns well with company values.',
+      feedbackDetails: { roundNumber: 2, rating: 5, recommendation: 'strong_yes' }
+    },
+    { id: 't5-7', candidateId: '5', eventType: 'state_change', state: 'SELECTED', timestamp: '2024-12-24T09:00:00Z', actor: 'client', note: 'Excellent interview performance across all rounds' },
   ],
   '6': [
-    { id: 't6-1', candidateId: '6', state: 'TO_REVIEW', timestamp: '2024-11-01T10:00:00Z', actor: 'system' },
-    { id: 't6-2', candidateId: '6', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-11-10T09:00:00Z', actor: 'client' },
-    { id: 't6-3', candidateId: '6', state: 'SELECTED', timestamp: '2024-11-20T14:00:00Z', actor: 'client' },
-    { id: 't6-4', candidateId: '6', state: 'JOINED', timestamp: '2024-12-01T08:00:00Z', actor: 'hr', note: 'Onboarding completed' },
+    { id: 't6-1', candidateId: '6', eventType: 'state_change', state: 'TO_REVIEW', timestamp: '2024-11-01T10:00:00Z', actor: 'system' },
+    { id: 't6-2', candidateId: '6', eventType: 'state_change', state: 'INTERVIEW_SCHEDULED', timestamp: '2024-11-05T09:00:00Z', actor: 'client' },
+    { 
+      id: 't6-3', 
+      candidateId: '6', 
+      eventType: 'interview_round', 
+      timestamp: '2024-11-10T09:00:00Z', 
+      actor: 'client',
+      note: 'Technical deep dive - distributed systems',
+      interviewDetails: { roundNumber: 1, mode: 'video', interviewerName: 'Alex Thompson', scheduledDate: '2024-11-10T09:00:00Z' }
+    },
+    { 
+      id: 't6-4', 
+      candidateId: '6', 
+      eventType: 'feedback', 
+      timestamp: '2024-11-10T11:00:00Z', 
+      actor: 'client',
+      note: 'Excellent knowledge of microservices and distributed systems.',
+      feedbackDetails: { roundNumber: 1, rating: 5, recommendation: 'strong_yes' }
+    },
+    { 
+      id: 't6-5', 
+      candidateId: '6', 
+      eventType: 'interview_round', 
+      timestamp: '2024-11-15T14:00:00Z', 
+      actor: 'client',
+      note: 'Final round with CTO',
+      interviewDetails: { roundNumber: 2, mode: 'in_person', interviewerName: 'Robert Williams', scheduledDate: '2024-11-15T14:00:00Z' }
+    },
+    { 
+      id: 't6-6', 
+      candidateId: '6', 
+      eventType: 'feedback', 
+      timestamp: '2024-11-15T16:00:00Z', 
+      actor: 'client',
+      note: 'Outstanding candidate. Strong hire recommendation.',
+      feedbackDetails: { roundNumber: 2, rating: 5, recommendation: 'strong_yes' }
+    },
+    { id: 't6-7', candidateId: '6', eventType: 'state_change', state: 'SELECTED', timestamp: '2024-11-20T14:00:00Z', actor: 'client' },
+    { id: 't6-8', candidateId: '6', eventType: 'state_change', state: 'JOINED', timestamp: '2024-12-01T08:00:00Z', actor: 'hr', note: 'Onboarding completed' },
   ],
 };
 
