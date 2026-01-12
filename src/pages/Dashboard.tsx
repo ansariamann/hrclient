@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Header } from '@/components/layout/Header';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { KanbanBoard } from '@/components/candidates/KanbanBoard';
+import { RecentRequests } from '@/components/dashboard/RecentRequests';
+import { CandidateDetailModal } from '@/components/candidates/CandidateDetailModal';
 import { apiClient } from '@/lib/api';
 import type { Candidate } from '@/types/ats';
 import { Loader2, RefreshCw, Users, AlertCircle } from 'lucide-react';
@@ -14,6 +16,7 @@ export default function Dashboard() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -57,10 +60,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container py-6">
+    <AppLayout>
+      <div className="container py-6">
         {/* Page Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -115,9 +116,26 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <KanbanBoard candidates={candidates} onCandidateUpdate={handleCandidateUpdate} />
+          <>
+            <RecentRequests 
+              candidates={candidates} 
+              onViewCandidate={setSelectedCandidate} 
+            />
+            <KanbanBoard candidates={candidates} onCandidateUpdate={handleCandidateUpdate} />
+          </>
         )}
-      </main>
-    </div>
+      </div>
+
+      {selectedCandidate && (
+        <CandidateDetailModal
+          candidate={selectedCandidate}
+          onClose={() => setSelectedCandidate(null)}
+          onUpdate={(updated) => {
+            handleCandidateUpdate(updated);
+            setSelectedCandidate(updated);
+          }}
+        />
+      )}
+    </AppLayout>
   );
 }

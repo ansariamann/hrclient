@@ -21,12 +21,12 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
   return (
     <button
       onClick={onClick}
-      className="candidate-card w-full text-left animate-slide-up"
+      className="candidate-card group w-full text-left animate-slide-up transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20"
       aria-label={`View details for ${candidate.name}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate">{candidate.name}</h3>
+          <h3 className="font-semibold text-foreground truncate transition-colors group-hover:text-primary">{candidate.name}</h3>
           <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
             {candidate.experienceSummary}
           </p>
