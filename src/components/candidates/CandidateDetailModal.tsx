@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { Candidate, ApplicationTimeline } from '@/types/ats';
-import { STATE_LABELS } from '@/types/ats';
+import { STATE_LABELS, RECOMMENDATION_LABELS } from '@/types/ats';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CandidateActions } from './CandidateActions';
-import { FileText, Briefcase, Clock, User } from 'lucide-react';
+import { FileText, Briefcase, Clock, User, Video, Phone, MapPin, Star, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { apiClient } from '@/lib/api';
 
@@ -142,27 +142,101 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {timeline.map((event) => (
-                    <div key={event.id} className="flex gap-4">
-                      <div className="relative flex flex-col items-center">
-                        <div className={`h-2.5 w-2.5 rounded-full bg-primary`} />
-                        <div className="flex-1 w-px bg-border" />
-                      </div>
-                      <div className="pb-4 flex-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {STATE_LABELS[event.state]}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {format(new Date(event.timestamp), 'MMM d, yyyy · h:mm a')}
-                        </p>
-                        {event.note && (
-                          <p className="text-sm text-muted-foreground mt-2 bg-muted rounded-md p-2">
-                            {event.note}
+                  {timeline.map((event) => {
+                    const isInterview = event.eventType === 'interview_round';
+                    const isFeedback = event.eventType === 'feedback';
+                    
+                    const getModeIcon = (mode?: string) => {
+                      switch (mode) {
+                        case 'video': return <Video className="h-3.5 w-3.5" />;
+                        case 'phone': return <Phone className="h-3.5 w-3.5" />;
+                        case 'in_person': return <MapPin className="h-3.5 w-3.5" />;
+                        default: return null;
+                      }
+                    };
+
+                    const getEventColor = () => {
+                      if (isInterview) return 'bg-blue-500';
+                      if (isFeedback) return 'bg-amber-500';
+                      return 'bg-primary';
+                    };
+
+                    const getEventTitle = () => {
+                      if (isInterview && event.interviewDetails) {
+                        return `Interview Round ${event.interviewDetails.roundNumber}`;
+                      }
+                      if (isFeedback && event.feedbackDetails) {
+                        return `Feedback - Round ${event.feedbackDetails.roundNumber}`;
+                      }
+                      if (event.state) {
+                        return STATE_LABELS[event.state];
+                      }
+                      return 'Event';
+                    };
+
+                    return (
+                      <div key={event.id} className="flex gap-4">
+                        <div className="relative flex flex-col items-center">
+                          <div className={`h-2.5 w-2.5 rounded-full ${getEventColor()}`} />
+                          <div className="flex-1 w-px bg-border" />
+                        </div>
+                        <div className="pb-4 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">
+                              {getEventTitle()}
+                            </p>
+                            {isInterview && event.interviewDetails && (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                {getModeIcon(event.interviewDetails.mode)}
+                                {event.interviewDetails.mode === 'in_person' ? 'In Person' : 
+                                  event.interviewDetails.mode === 'video' ? 'Video' : 'Phone'}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(event.timestamp), 'MMM d, yyyy · h:mm a')}
+                            {event.actor !== 'system' && ` · by ${event.actor}`}
                           </p>
-                        )}
+                          
+                          {isInterview && event.interviewDetails?.interviewerName && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Interviewer: {event.interviewDetails.interviewerName}
+                            </p>
+                          )}
+                          
+                          {isFeedback && event.feedbackDetails && (
+                            <div className="mt-2 flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star 
+                                    key={star}
+                                    className={`h-3.5 w-3.5 ${
+                                      star <= event.feedbackDetails!.rating 
+                                        ? 'text-amber-500 fill-amber-500' 
+                                        : 'text-muted-foreground/30'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {RECOMMENDATION_LABELS[event.feedbackDetails.recommendation]}
+                              </Badge>
+                            </div>
+                          )}
+                          
+                          {event.note && (
+                            <div className="mt-2 flex gap-2 items-start bg-muted rounded-md p-2">
+                              <MessageSquare className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                              <p className="text-sm text-muted-foreground">
+                                {event.note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>

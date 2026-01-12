@@ -27,21 +27,60 @@ export interface Candidate {
   updatedAt: string;
 }
 
+export type TimelineEventType = 
+  | 'state_change'
+  | 'interview_round'
+  | 'feedback';
+
+export interface InterviewRoundDetails {
+  roundNumber: number;
+  mode: 'in_person' | 'video' | 'phone';
+  interviewerName?: string;
+  scheduledDate?: string;
+}
+
+export interface FeedbackDetails {
+  roundNumber: number;
+  rating: 1 | 2 | 3 | 4 | 5;
+  recommendation: 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no';
+}
+
 export interface ApplicationTimeline {
   id: string;
   candidateId: string;
-  state: CandidateState;
+  eventType: TimelineEventType;
+  state?: CandidateState;
   timestamp: string;
   actor: 'client' | 'system' | 'hr';
   note?: string;
+  interviewDetails?: InterviewRoundDetails;
+  feedbackDetails?: FeedbackDetails;
 }
 
 export interface ScheduleInterviewPayload {
   candidateId: string;
   scheduledDate: string;
   mode: 'in_person' | 'video' | 'phone';
+  roundNumber: number;
+  interviewerName?: string;
   notes?: string;
 }
+
+export interface InterviewFeedbackPayload {
+  candidateId: string;
+  roundNumber: number;
+  rating: 1 | 2 | 3 | 4 | 5;
+  recommendation: 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no';
+  feedback: string;
+}
+
+export const RECOMMENDATION_LABELS: Record<FeedbackDetails['recommendation'], string> = {
+  strong_yes: 'Strong Yes',
+  yes: 'Yes',
+  neutral: 'Neutral',
+  no: 'No',
+  strong_no: 'Strong No',
+};
 
 export interface RejectPayload {
   candidateId: string;
