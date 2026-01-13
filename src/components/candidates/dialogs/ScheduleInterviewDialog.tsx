@@ -28,6 +28,7 @@ interface ScheduleInterviewDialogProps {
   open: boolean;
   onClose: () => void;
   onComplete: (candidate: Candidate) => void;
+  isNextRound?: boolean;
 }
 
 export function ScheduleInterviewDialog({
@@ -35,12 +36,13 @@ export function ScheduleInterviewDialog({
   open,
   onClose,
   onComplete,
+  isNextRound = false,
 }: ScheduleInterviewDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [mode, setMode] = useState<ScheduleInterviewPayload['mode']>('video');
-  const [roundNumber, setRoundNumber] = useState(1);
+  const [roundNumber, setRoundNumber] = useState(isNextRound ? 2 : 1);
   const [interviewerName, setInterviewerName] = useState('');
   const [notes, setNotes] = useState('');
   const { toast } = useToast();
@@ -92,7 +94,7 @@ export function ScheduleInterviewDialog({
     setScheduledDate('');
     setScheduledTime('');
     setMode('video');
-    setRoundNumber(1);
+    setRoundNumber(isNextRound ? 2 : 1);
     setInterviewerName('');
     setNotes('');
     onClose();
@@ -104,10 +106,12 @@ export function ScheduleInterviewDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-state-interview" />
-            Schedule Interview
+            {isNextRound ? 'Schedule Next Interview Round' : 'Schedule Interview'}
           </DialogTitle>
           <DialogDescription>
-            Schedule an interview with {candidate.name}
+            {isNextRound 
+              ? `Schedule the next interview round with ${candidate.name}`
+              : `Schedule an interview with ${candidate.name}`}
           </DialogDescription>
         </DialogHeader>
 
