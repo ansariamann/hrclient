@@ -5,6 +5,7 @@ import type {
   ScheduleInterviewPayload,
   RejectPayload,
   LeftCompanyPayload,
+  InterviewFeedbackPayload,
   ApiError,
 } from '@/types/ats';
 import { mockCandidates, mockTimeline, mockTokenValidation } from './mockData';
@@ -118,7 +119,7 @@ class ApiClient {
       demoCandidates[index] = {
         ...demoCandidates[index],
         currentState: 'INTERVIEW_SCHEDULED',
-        allowedActions: ['SELECT', 'REJECT'],
+        allowedActions: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
         updatedAt: new Date().toISOString(),
       };
       
@@ -126,6 +127,43 @@ class ApiClient {
     }
 
     return this.request<Candidate>('/actions/schedule-interview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async submitFeedback(payload: InterviewFeedbackPayload): Promise<Candidate> {
+    if (DEMO_MODE) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
+      if (index === -1) {
+        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
+      }
+      
+      // Add feedback to timeline
+      const feedbackEvent = {
+        id: `timeline-feedback-${Date.now()}`,
+        candidateId: payload.candidateId,
+        eventType: 'feedback' as const,
+        timestamp: new Date().toISOString(),
+        actor: 'client' as const,
+        note: payload.feedback,
+        feedbackDetails: {
+          roundNumber: payload.roundNumber,
+          rating: payload.rating,
+          recommendation: payload.recommendation,
+        },
+      };
+      
+      if (!mockTimeline[payload.candidateId]) {
+        mockTimeline[payload.candidateId] = [];
+      }
+      mockTimeline[payload.candidateId].push(feedbackEvent);
+      
+      return demoCandidates[index];
+    }
+
+    return this.request<Candidate>('/actions/submit-feedback', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

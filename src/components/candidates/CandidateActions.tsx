@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { Candidate, ClientAction } from '@/types/ats';
 import { Button } from '@/components/ui/button';
-import { Calendar, CheckCircle, XCircle, UserMinus, Loader2 } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, UserMinus, Loader2, MessageSquare, CalendarPlus } from 'lucide-react';
 import { ScheduleInterviewDialog } from './dialogs/ScheduleInterviewDialog';
 import { RejectDialog } from './dialogs/RejectDialog';
 import { LeftCompanyDialog } from './dialogs/LeftCompanyDialog';
+import { AddFeedbackDialog } from './dialogs/AddFeedbackDialog';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,10 +16,12 @@ interface CandidateActionsProps {
 
 export function CandidateActions({ candidate, onActionComplete }: CandidateActionsProps) {
   const [isLoading, setIsLoading] = useState<ClientAction | null>(null);
-  const [openDialog, setOpenDialog] = useState<ClientAction | null>(null);
+  const [openDialog, setOpenDialog] = useState<ClientAction | 'ADD_FEEDBACK' | 'SCHEDULE_NEXT_ROUND' | null>(null);
+  const [currentRoundNumber, setCurrentRoundNumber] = useState(1);
   const { toast } = useToast();
 
   const allowedActions = candidate.allowedActions;
+  const isInterviewScheduled = candidate.currentState === 'INTERVIEW_SCHEDULED';
 
   const handleSelect = async () => {
     setIsLoading('SELECT');
@@ -40,6 +43,11 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
     }
   };
 
+  const handleOpenFeedback = (roundNumber: number) => {
+    setCurrentRoundNumber(roundNumber);
+    setOpenDialog('ADD_FEEDBACK');
+  };
+
   if (allowedActions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-2">
@@ -51,7 +59,7 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {allowedActions.includes('SCHEDULE_INTERVIEW') && (
+        {allowedActions.includes('SCHEDULE_INTERVIEW') && !isInterviewScheduled && (
           <Button
             variant="action-schedule"
             size="sm"
@@ -60,6 +68,34 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
           >
             <Calendar className="h-4 w-4" />
             Schedule Interview
+          </Button>
+        )}
+
+        {/* Show "Schedule Next Round" for candidates already in interview process */}
+        {isInterviewScheduled && allowedActions.includes('SCHEDULE_INTERVIEW') && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setOpenDialog('SCHEDULE_NEXT_ROUND')}
+            disabled={!!isLoading}
+            className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Schedule Next Round
+          </Button>
+        )}
+
+        {/* Add Feedback button for interviewed candidates */}
+        {isInterviewScheduled && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenFeedback(1)}
+            disabled={!!isLoading}
+            className="gap-2 border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Add Feedback
           </Button>
         )}
 
@@ -112,6 +148,14 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
         onComplete={onActionComplete}
       />
 
+      <ScheduleInterviewDialog
+        candidate={candidate}
+        open={openDialog === 'SCHEDULE_NEXT_ROUND'}
+        onClose={() => setOpenDialog(null)}
+        onComplete={onActionComplete}
+        isNextRound
+      />
+
       <RejectDialog
         candidate={candidate}
         open={openDialog === 'REJECT'}
@@ -122,6 +166,14 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
       <LeftCompanyDialog
         candidate={candidate}
         open={openDialog === 'MARK_LEFT_COMPANY'}
+        onClose={() => setOpenDialog(null)}
+        onComplete={onActionComplete}
+      />
+
+      <AddFeedbackDialog
+        candidate={candidate}
+        roundNumber={currentRoundNumber}
+        open={openDialog === 'ADD_FEEDBACK'}
         onClose={() => setOpenDialog(null)}
         onComplete={onActionComplete}
       />
