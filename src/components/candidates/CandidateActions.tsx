@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Candidate, ClientAction } from '@/types/ats';
 import { Button } from '@/components/ui/button';
-import { Calendar, CheckCircle, XCircle, UserMinus, Loader2, MessageSquare, CalendarPlus } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, UserMinus, Loader2, MessageSquare } from 'lucide-react';
 import { ScheduleInterviewDialog } from './dialogs/ScheduleInterviewDialog';
 import { RejectDialog } from './dialogs/RejectDialog';
 import { LeftCompanyDialog } from './dialogs/LeftCompanyDialog';
@@ -16,12 +16,15 @@ interface CandidateActionsProps {
 
 export function CandidateActions({ candidate, onActionComplete }: CandidateActionsProps) {
   const [isLoading, setIsLoading] = useState<ClientAction | null>(null);
-  const [openDialog, setOpenDialog] = useState<ClientAction | 'ADD_FEEDBACK' | 'SCHEDULE_NEXT_ROUND' | null>(null);
+  const [openDialog, setOpenDialog] = useState<ClientAction | 'ADD_FEEDBACK' | null>(null);
   const [currentRoundNumber, setCurrentRoundNumber] = useState(1);
   const { toast } = useToast();
 
   const allowedActions = candidate.allowedActions;
   const isInterviewScheduled = candidate.currentState === 'INTERVIEW_SCHEDULED';
+
+  // Default to round 1 - actual round tracking would come from timeline in detail view
+  const latestRound = 1;
 
   const handleSelect = async () => {
     setIsLoading('SELECT');
@@ -43,8 +46,8 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
     }
   };
 
-  const handleOpenFeedback = (roundNumber: number) => {
-    setCurrentRoundNumber(roundNumber);
+  const handleOpenFeedback = () => {
+    setCurrentRoundNumber(latestRound);
     setOpenDialog('ADD_FEEDBACK');
   };
 
@@ -71,31 +74,17 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
           </Button>
         )}
 
-        {/* Show "Schedule Next Round" for candidates already in interview process */}
-        {isInterviewScheduled && allowedActions.includes('SCHEDULE_INTERVIEW') && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setOpenDialog('SCHEDULE_NEXT_ROUND')}
-            disabled={!!isLoading}
-            className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-          >
-            <CalendarPlus className="h-4 w-4" />
-            Schedule Next Round
-          </Button>
-        )}
-
-        {/* Add Feedback button for interviewed candidates */}
+        {/* Feedback & Next Round button for interviewed candidates */}
         {isInterviewScheduled && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleOpenFeedback(1)}
+            onClick={handleOpenFeedback}
             disabled={!!isLoading}
-            className="gap-2 border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+            className="gap-2 border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
           >
             <MessageSquare className="h-4 w-4" />
-            Add Feedback
+            Feedback & Next Round
           </Button>
         )}
 
@@ -146,14 +135,6 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
         open={openDialog === 'SCHEDULE_INTERVIEW'}
         onClose={() => setOpenDialog(null)}
         onComplete={onActionComplete}
-      />
-
-      <ScheduleInterviewDialog
-        candidate={candidate}
-        open={openDialog === 'SCHEDULE_NEXT_ROUND'}
-        onClose={() => setOpenDialog(null)}
-        onComplete={onActionComplete}
-        isNextRound
       />
 
       <RejectDialog
