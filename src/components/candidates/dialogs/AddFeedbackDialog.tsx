@@ -12,10 +12,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Star, MessageSquare } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Star, MessageSquare, CalendarPlus, Video, Phone, Users } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface AddFeedbackDialogProps {
   candidate: Candidate;
@@ -38,12 +41,24 @@ export function AddFeedbackDialog({
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [recommendation, setRecommendation] = useState<FeedbackDetails['recommendation']>('neutral');
   const [feedback, setFeedback] = useState('');
+  
+  // Next round scheduling
+  const [scheduleNextRound, setScheduleNextRound] = useState(false);
+  const [nextRoundDate, setNextRoundDate] = useState('');
+  const [nextRoundTime, setNextRoundTime] = useState('');
+  const [nextRoundMode, setNextRoundMode] = useState<'video' | 'phone' | 'in_person'>('video');
+  const [nextRoundInterviewer, setNextRoundInterviewer] = useState('');
 
   const handleClose = () => {
     setRating(3);
     setHoverRating(null);
     setRecommendation('neutral');
     setFeedback('');
+    setScheduleNextRound(false);
+    setNextRoundDate('');
+    setNextRoundTime('');
+    setNextRoundMode('video');
+    setNextRoundInterviewer('');
     onClose();
   };
 
@@ -57,19 +72,58 @@ export function AddFeedbackDialog({
       return;
     }
 
+    if (scheduleNextRound) {
+      if (!nextRoundDate || !nextRoundTime) {
+        toast({
+          title: 'Schedule Required',
+          description: 'Please provide date and time for the next round.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (!nextRoundInterviewer.trim()) {
+        toast({
+          title: 'Interviewer Required',
+          description: 'Please specify the interviewer for the next round.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      const updated = await apiClient.submitFeedback({
+      // Submit feedback first
+      let updated = await apiClient.submitFeedback({
         candidateId: candidate.id,
         roundNumber,
         rating,
         recommendation,
         feedback: feedback.trim(),
       });
-      toast({
-        title: 'Feedback Submitted',
-        description: `Feedback for Round ${roundNumber} has been saved.`,
-      });
+
+      // If scheduling next round, do that too
+      if (scheduleNextRound) {
+        const scheduledDate = new Date(`${nextRoundDate}T${nextRoundTime}`);
+        updated = await apiClient.scheduleInterview({
+          candidateId: candidate.id,
+          scheduledDate: scheduledDate.toISOString(),
+          mode: nextRoundMode,
+          roundNumber: roundNumber + 1,
+          interviewerName: nextRoundInterviewer.trim(),
+        });
+        
+        toast({
+          title: 'Feedback & Next Round Scheduled',
+          description: `Feedback saved and Round ${roundNumber + 1} scheduled for ${format(scheduledDate, 'PPP')}.`,
+        });
+      } else {
+        toast({
+          title: 'Feedback Submitted',
+          description: `Feedback for Round ${roundNumber} has been saved.`,
+        });
+      }
+
       onComplete(updated);
       handleClose();
     } catch (error: any) {
@@ -85,14 +139,14 @@ export function AddFeedbackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
-            Add Interview Feedback
+            Interview Feedback & Next Steps
           </DialogTitle>
           <DialogDescription>
-            Submit your feedback for {candidate.name}'s Round {roundNumber} interview.
+            Submit feedback for {candidate.name}'s Round {roundNumber} and optionally schedule the next round.
           </DialogDescription>
         </DialogHeader>
 
@@ -151,6 +205,85 @@ export function AddFeedbackDialog({
               rows={4}
             />
           </div>
+
+          {/* Schedule Next Round Toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center gap-3">
+              <CalendarPlus className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="font-medium text-sm">Schedule Next Round</p>
+                <p className="text-xs text-muted-foreground">Schedule Round {roundNumber + 1} interview</p>
+              </div>
+            </div>
+            <Switch
+              checked={scheduleNextRound}
+              onCheckedChange={setScheduleNextRound}
+            />
+          </div>
+
+          {/* Next Round Details */}
+          {scheduleNextRound && (
+            <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/20">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Round {roundNumber + 1} Details
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="next-date">Date</Label>
+                  <Input
+                    id="next-date"
+                    type="date"
+                    value={nextRoundDate}
+                    onChange={(e) => setNextRoundDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="next-time">Time</Label>
+                  <Input
+                    id="next-time"
+                    type="time"
+                    value={nextRoundTime}
+                    onChange={(e) => setNextRoundTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Interview Mode</Label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'video', icon: Video, label: 'Video' },
+                    { value: 'phone', icon: Phone, label: 'Phone' },
+                    { value: 'in_person', icon: Users, label: 'In Person' },
+                  ].map(({ value, icon: Icon, label }) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant={nextRoundMode === value ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={() => setNextRoundMode(value as typeof nextRoundMode)}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="next-interviewer">Interviewer Name</Label>
+                <Input
+                  id="next-interviewer"
+                  placeholder="Enter interviewer name"
+                  value={nextRoundInterviewer}
+                  onChange={(e) => setNextRoundInterviewer(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -163,6 +296,8 @@ export function AddFeedbackDialog({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...
               </>
+            ) : scheduleNextRound ? (
+              'Submit & Schedule'
             ) : (
               'Submit Feedback'
             )}
