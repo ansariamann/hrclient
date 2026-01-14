@@ -3,11 +3,14 @@ import type { Candidate, ApplicationTimeline } from '@/types/ats';
 import { STATE_LABELS, RECOMMENDATION_LABELS } from '@/types/ats';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CandidateActions } from './CandidateActions';
-import { FileText, Briefcase, Clock, User, Video, Phone, MapPin, Star, MessageSquare } from 'lucide-react';
+import { FileText, Briefcase, Clock, User, Video, Phone, MapPin, Star, MessageSquare, Download } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { apiClient } from '@/lib/api';
+import { generateCandidateReport } from '@/lib/generateCandidateReport';
+import { useToast } from '@/hooks/use-toast';
 
 interface CandidateDetailModalProps {
   candidate: Candidate | null;
@@ -27,6 +30,24 @@ const stateVariant = {
 export function CandidateDetailModal({ candidate, onClose, onUpdate }: CandidateDetailModalProps) {
   const [timeline, setTimeline] = useState<ApplicationTimeline[]>([]);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
+  const { toast } = useToast();
+
+  const handleExportPDF = () => {
+    if (!candidate) return;
+    try {
+      generateCandidateReport(candidate, timeline);
+      toast({
+        title: 'Report Downloaded',
+        description: `PDF report for ${candidate.name} has been generated.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Unable to generate the PDF report. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   useEffect(() => {
     if (candidate) {
@@ -54,9 +75,21 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                 Application ID: {candidate.applicationId}
               </DialogDescription>
             </div>
-            <Badge variant={stateVariant[candidate.currentState]} className="shrink-0">
-              {STATE_LABELS[candidate.currentState]}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={isLoadingTimeline}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </Button>
+              <Badge variant={stateVariant[candidate.currentState]} className="shrink-0">
+                {STATE_LABELS[candidate.currentState]}
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 
