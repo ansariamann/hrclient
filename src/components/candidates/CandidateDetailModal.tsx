@@ -245,7 +245,7 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
 
         {/* Actions */}
         <div className="shrink-0 border-t pt-4 mt-4">
-          <CandidateActions candidate={candidate} onActionComplete={onUpdate} />
+          <CandidateActions candidate={candidate} onActionComplete={onUpdate} timeline={timeline} />
         </div>
       </DialogContent>
     </Dialog>
