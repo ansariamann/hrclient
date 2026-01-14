@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Candidate, ClientAction } from '@/types/ats';
+import { useState, useMemo } from 'react';
+import type { Candidate, ClientAction, ApplicationTimeline } from '@/types/ats';
 import { Button } from '@/components/ui/button';
 import { Calendar, CheckCircle, XCircle, UserMinus, Loader2, MessageSquare } from 'lucide-react';
 import { ScheduleInterviewDialog } from './dialogs/ScheduleInterviewDialog';
@@ -12,9 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 interface CandidateActionsProps {
   candidate: Candidate;
   onActionComplete: (candidate: Candidate) => void;
+  timeline?: ApplicationTimeline[];
 }
 
-export function CandidateActions({ candidate, onActionComplete }: CandidateActionsProps) {
+export function CandidateActions({ candidate, onActionComplete, timeline = [] }: CandidateActionsProps) {
   const [isLoading, setIsLoading] = useState<ClientAction | null>(null);
   const [openDialog, setOpenDialog] = useState<ClientAction | 'ADD_FEEDBACK' | null>(null);
   const [currentRoundNumber, setCurrentRoundNumber] = useState(1);
@@ -23,8 +24,13 @@ export function CandidateActions({ candidate, onActionComplete }: CandidateActio
   const allowedActions = candidate.allowedActions;
   const isInterviewScheduled = candidate.currentState === 'INTERVIEW_SCHEDULED';
 
-  // Default to round 1 - actual round tracking would come from timeline in detail view
-  const latestRound = 1;
+  // Calculate the latest round number from timeline data
+  const latestRound = useMemo(() => {
+    const interviewEvents = timeline.filter(e => e.eventType === 'interview_round');
+    if (interviewEvents.length === 0) return 1;
+    const maxRound = Math.max(...interviewEvents.map(e => e.interviewDetails?.roundNumber ?? 0));
+    return maxRound || 1;
+  }, [timeline]);
 
   const handleSelect = async () => {
     setIsLoading('SELECT');
