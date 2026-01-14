@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Candidate, FeedbackDetails } from '@/types/ats';
+import type { Candidate, FeedbackDetails, ApplicationTimeline } from '@/types/ats';
 import { RECOMMENDATION_LABELS } from '@/types/ats';
 import {
   Dialog,
@@ -15,7 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Star, MessageSquare, CalendarPlus, Video, Phone, Users } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, Star, MessageSquare, CalendarPlus, Video, Phone, Users, ChevronDown, History } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -26,6 +27,7 @@ interface AddFeedbackDialogProps {
   open: boolean;
   onClose: () => void;
   onComplete: (candidate: Candidate) => void;
+  timeline?: ApplicationTimeline[];
 }
 
 export function AddFeedbackDialog({
@@ -34,6 +36,7 @@ export function AddFeedbackDialog({
   open,
   onClose,
   onComplete,
+  timeline = [],
 }: AddFeedbackDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +51,12 @@ export function AddFeedbackDialog({
   const [nextRoundTime, setNextRoundTime] = useState('');
   const [nextRoundMode, setNextRoundMode] = useState<'video' | 'phone' | 'in_person'>('video');
   const [nextRoundInterviewer, setNextRoundInterviewer] = useState('');
+  const [showPreviousFeedback, setShowPreviousFeedback] = useState(false);
+
+  // Get previous feedback from timeline
+  const previousFeedback = timeline
+    .filter(e => e.eventType === 'feedback' && e.feedbackDetails)
+    .sort((a, b) => (b.feedbackDetails?.roundNumber ?? 0) - (a.feedbackDetails?.roundNumber ?? 0));
 
   const handleClose = () => {
     setRating(3);
@@ -151,6 +160,52 @@ export function AddFeedbackDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-4">
+          {/* Previous Feedback Section */}
+          {previousFeedback.length > 0 && (
+            <Collapsible open={showPreviousFeedback} onOpenChange={setShowPreviousFeedback}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between px-3 py-2 h-auto border border-muted">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Previous Feedback ({previousFeedback.length} round{previousFeedback.length > 1 ? 's' : ''})</span>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPreviousFeedback ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-3">
+                {previousFeedback.map((event) => (
+                  <div key={event.id} className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Round {event.feedbackDetails?.roundNumber}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(event.timestamp), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star}
+                            className={`h-3.5 w-3.5 ${
+                              star <= (event.feedbackDetails?.rating ?? 0)
+                                ? 'text-amber-500 fill-amber-500' 
+                                : 'text-muted-foreground/30'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                        {event.feedbackDetails?.recommendation && RECOMMENDATION_LABELS[event.feedbackDetails.recommendation]}
+                      </span>
+                    </div>
+                    {event.note && (
+                      <p className="text-sm text-muted-foreground">{event.note}</p>
+                    )}
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
           {/* Star Rating */}
           <div className="space-y-2">
             <Label>Rating</Label>

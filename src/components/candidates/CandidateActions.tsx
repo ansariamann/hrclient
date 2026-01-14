@@ -163,6 +163,7 @@ export function CandidateActions({ candidate, onActionComplete, timeline = [] }:
         open={openDialog === 'ADD_FEEDBACK'}
         onClose={() => setOpenDialog(null)}
         onComplete={onActionComplete}
+        timeline={timeline}
       />
     </>
   );
