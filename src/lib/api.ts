@@ -8,16 +8,12 @@ import type {
   InterviewFeedbackPayload,
   ApiError,
 } from '@/types/ats';
-import { mockCandidates, mockTimeline, mockTokenValidation } from './mockData';
 
-// Demo mode flag - set to true to use mock data
-const DEMO_MODE = true;
+// Demo mode flag - set to false to use real backend
+const DEMO_MODE = false;
 
-// API base URL - would be configured via environment variable
-const API_BASE = '/api';
-
-// In-memory state for demo mode
-let demoCandidates = [...mockCandidates];
+// API base URL - configured via environment variable
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiClient {
   private token: string | null = null;
@@ -58,17 +54,6 @@ class ApiClient {
 
   // Token validation
   async validateToken(token: string): Promise<TokenValidationResult> {
-    if (DEMO_MODE) {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Demo token validation - accept any token starting with "demo"
-      if (token.startsWith('demo') || token === 'test') {
-        return mockTokenValidation;
-      }
-      return { valid: false, error: 'invalid' };
-    }
-
     return this.request<TokenValidationResult>('/auth/validate', {
       method: 'POST',
       body: JSON.stringify({ token }),
@@ -77,168 +62,67 @@ class ApiClient {
 
   // Candidates
   async getCandidates(): Promise<Candidate[]> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return demoCandidates;
-    }
-
-    return this.request<Candidate[]>('/candidates');
+    return this.request<Candidate[]>('/candidates/');
   }
 
   async getCandidate(id: string): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const candidate = demoCandidates.find(c => c.id === id);
-      if (!candidate) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      return candidate;
-    }
-
     return this.request<Candidate>(`/candidates/${id}`);
   }
 
   async getCandidateTimeline(id: string): Promise<ApplicationTimeline[]> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      return mockTimeline[id] || [];
-    }
-
+    // Note: Backend may need to implement this endpoint
     return this.request<ApplicationTimeline[]>(`/candidates/${id}/timeline`);
   }
 
-  // Actions
+  // Actions - Using application status update endpoints
   async scheduleInterview(payload: ScheduleInterviewPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'INTERVIEW_SCHEDULED',
-        allowedActions: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return demoCandidates[index];
+    // First update application status
+    await this.request<void>(
+      `/applications/${payload.candidateId}/status?new_status=INTERVIEW_SCHEDULED`,
+      { method: 'PUT' }
+    );
+    
+    // Then submit interview details if endpoint exists
+    try {
+      return await this.request<Candidate>('/interviews/schedule', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Fallback: return updated candidate
+      return this.getCandidate(payload.candidateId);
     }
-
-    return this.request<Candidate>('/actions/schedule-interview', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
   }
 
   async submitFeedback(payload: InterviewFeedbackPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      
-      // Add feedback to timeline
-      const feedbackEvent = {
-        id: `timeline-feedback-${Date.now()}`,
-        candidateId: payload.candidateId,
-        eventType: 'feedback' as const,
-        timestamp: new Date().toISOString(),
-        actor: 'client' as const,
-        note: payload.feedback,
-        feedbackDetails: {
-          roundNumber: payload.roundNumber,
-          rating: payload.rating,
-          recommendation: payload.recommendation,
-        },
-      };
-      
-      if (!mockTimeline[payload.candidateId]) {
-        mockTimeline[payload.candidateId] = [];
-      }
-      mockTimeline[payload.candidateId].push(feedbackEvent);
-      
-      return demoCandidates[index];
-    }
-
-    return this.request<Candidate>('/actions/submit-feedback', {
+    return this.request<Candidate>('/interviews/feedback', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
   async selectCandidate(candidateId: string): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'SELECTED',
-        allowedActions: ['REJECT'],
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return demoCandidates[index];
-    }
-
-    return this.request<Candidate>('/actions/select', {
-      method: 'POST',
-      body: JSON.stringify({ candidateId }),
-    });
+    await this.request<void>(
+      `/applications/${candidateId}/status?new_status=SELECTED`,
+      { method: 'PUT' }
+    );
+    return this.getCandidate(candidateId);
   }
 
   async rejectCandidate(payload: RejectPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'REJECTED',
-        allowedActions: [],
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return demoCandidates[index];
-    }
-
-    return this.request<Candidate>('/actions/reject', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    await this.request<void>(
+      `/applications/${payload.candidateId}/status?new_status=REJECTED`,
+      { method: 'PUT' }
+    );
+    return this.getCandidate(payload.candidateId);
   }
 
   async markLeftCompany(payload: LeftCompanyPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'LEFT_COMPANY',
-        allowedActions: [],
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return demoCandidates[index];
-    }
-
-    return this.request<Candidate>('/actions/left-company', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    await this.request<void>(
+      `/applications/${payload.candidateId}/status?new_status=LEFT_COMPANY`,
+      { method: 'PUT' }
+    );
+    return this.getCandidate(payload.candidateId);
   }
 }
 
