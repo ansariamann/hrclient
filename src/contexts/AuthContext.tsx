@@ -1,19 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { TokenValidationResult } from '@/types/ats';
+import type { TokenValidationResult, LoginCredentials, LoginResponse } from '@/types/ats';
 import { apiClient } from '@/lib/api';
 
 interface AuthState {
   isValidating: boolean;
   isAuthenticated: boolean;
   clientName: string | null;
-  error: TokenValidationResult['error'] | null;
+  error: TokenValidationResult['error'] | string | null;
   expiresAt: Date | null;
 }
 
 interface AuthContextValue extends AuthState {
   validateToken: (token: string) => Promise<boolean>;
-  loginWithOAuth: (provider: 'google' | 'github') => Promise<void>;
-  handleOAuthCallback: (token: string) => Promise<boolean>;
+  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -23,7 +22,7 @@ const TOKEN_STORAGE_KEY = 'ats_auth_token';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    isValidating: false,
+    isValidating: true, // Start as validating to check for existing token
     isAuthenticated: false,
     clientName: null,
     error: null,
@@ -32,24 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing token on mount
   useEffect(() => {
-    const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-    if (storedToken) {
-      validateToken(storedToken);
-    }
-  }, []);
-
-  // Handle OAuth callback from URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token') || params.get('access_token');
-    
-    if (token) {
-      handleOAuthCallback(token).then((success) => {
-        if (success) {
-          // Clean up URL
-          window.history.replaceState({}, '', window.location.pathname);
-        }
+    const existingToken = apiClient.getToken();
+    if (existingToken) {
+      // Validate the existing token
+      validateToken(existingToken).finally(() => {
+        setState(prev => ({ ...prev, isValidating: false }));
       });
+    } else {
+      setState(prev => ({ ...prev, isValidating: false }));
     }
   }, []);
 
@@ -94,17 +83,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const loginWithOAuth = useCallback(async (provider: 'google' | 'github'): Promise<void> => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const redirectUri = encodeURIComponent(window.location.origin + '/login');
-    
-    // Redirect to backend OAuth endpoint
-    window.location.href = `${apiUrl}/auth/${provider}?redirect_uri=${redirectUri}`;
-  }, []);
+  const login = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
+    setState(prev => ({ ...prev, isValidating: true, error: null }));
 
-  const handleOAuthCallback = useCallback(async (token: string): Promise<boolean> => {
-    return validateToken(token);
-  }, [validateToken]);
+    try {
+      const response: LoginResponse = await apiClient.login(credentials);
+
+      // Token is already set in apiClient.login()
+      setState({
+        isValidating: false,
+        isAuthenticated: true,
+        clientName: null, // Will be fetched separately if needed
+        error: null,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Assume 24h expiry
+      });
+      return true;
+    } catch (err: unknown) {
+      const errorMessage = (err as { message?: string; detail?: string })?.message ||
+        (err as { message?: string; detail?: string })?.detail ||
+        'Login failed';
+      setState({
+        isValidating: false,
+        isAuthenticated: false,
+        clientName: null,
+        error: errorMessage,
+        expiresAt: null,
+      });
+      return false;
+    }
+  }, []);
 
   const logout = useCallback(() => {
     apiClient.clearToken();
@@ -137,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.expiresAt, logout]);
 
   return (
-    <AuthContext.Provider value={{ ...state, validateToken, loginWithOAuth, handleOAuthCallback, logout }}>
+    <AuthContext.Provider value={{ ...state, validateToken, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
