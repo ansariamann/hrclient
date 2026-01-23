@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { TokenValidationResult, LoginCredentials, LoginResponse } from '@/types/ats';
-import { apiClient } from '@/lib/api';
+import { apiClient, API_BASE } from '@/lib/api';
 
 interface AuthState {
   isValidating: boolean;
@@ -13,6 +13,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   validateToken: (token: string) => Promise<boolean>;
   login: (credentials: LoginCredentials) => Promise<boolean>;
+  loginWithOAuth: (provider: 'google' | 'github') => Promise<void>;
   logout: () => void;
 }
 
@@ -113,6 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loginWithOAuth = useCallback(async (provider: 'google' | 'github'): Promise<void> => {
+    // Redirect to backend OAuth endpoint
+    // The backend will handle the OAuth flow and redirect back with a token
+    const currentUrl = window.location.origin;
+    const redirectUrl = `${API_BASE}/auth/${provider}?redirect_uri=${encodeURIComponent(currentUrl + '/auth/callback')}`;
+    window.location.href = redirectUrl;
+  }, []);
+
   const logout = useCallback(() => {
     apiClient.clearToken();
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -144,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.expiresAt, logout]);
 
   return (
-    <AuthContext.Provider value={{ ...state, validateToken, login, logout }}>
+    <AuthContext.Provider value={{ ...state, validateToken, login, loginWithOAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

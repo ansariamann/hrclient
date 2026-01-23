@@ -18,7 +18,7 @@ import type {
 const DEMO_MODE = false;
 
 // API base URL - configured via environment variable
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Storage keys
 const TOKEN_STORAGE_KEY = 'ats_client_token';
@@ -48,10 +48,13 @@ function transformCandidate(backend: BackendCandidateResponse, application?: Bac
   if (backend.experience) {
     if (typeof backend.experience === 'string') {
       experienceSummary = backend.experience;
-    } else if (backend.experience.summary) {
-      experienceSummary = backend.experience.summary;
-    } else if (backend.experience.years) {
-      experienceSummary = `${backend.experience.years} years of experience`;
+    } else if (typeof backend.experience === 'object') {
+      const exp = backend.experience as Record<string, unknown>;
+      if (typeof exp.summary === 'string') {
+        experienceSummary = exp.summary;
+      } else if (typeof exp.years === 'number' || typeof exp.years === 'string') {
+        experienceSummary = `${exp.years} years of experience`;
+      }
     }
   }
 
