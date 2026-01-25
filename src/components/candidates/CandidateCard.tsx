@@ -1,68 +1,111 @@
 import type { Candidate } from '@/types/ats';
-import { Badge } from '@/components/ui/badge';
-import { Briefcase, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ArrowUpRight } from 'lucide-react';
 
 interface CandidateCardProps {
   candidate: Candidate;
   onClick: () => void;
 }
 
+const stateConfig = {
+  TO_REVIEW: {
+    label: 'Review',
+    gradient: 'from-amber-500/10 via-orange-500/5 to-transparent',
+    accent: 'bg-amber-500',
+    text: 'text-amber-600 dark:text-amber-400',
+  },
+  INTERVIEW_SCHEDULED: {
+    label: 'Interview',
+    gradient: 'from-blue-500/10 via-indigo-500/5 to-transparent',
+    accent: 'bg-blue-500',
+    text: 'text-blue-600 dark:text-blue-400',
+  },
+  SELECTED: {
+    label: 'Selected',
+    gradient: 'from-emerald-500/10 via-green-500/5 to-transparent',
+    accent: 'bg-emerald-500',
+    text: 'text-emerald-600 dark:text-emerald-400',
+  },
+  JOINED: {
+    label: 'Joined',
+    gradient: 'from-violet-500/10 via-purple-500/5 to-transparent',
+    accent: 'bg-violet-500',
+    text: 'text-violet-600 dark:text-violet-400',
+  },
+  REJECTED: {
+    label: 'Rejected',
+    gradient: 'from-rose-500/10 via-red-500/5 to-transparent',
+    accent: 'bg-rose-500',
+    text: 'text-rose-600 dark:text-rose-400',
+  },
+  LEFT_COMPANY: {
+    label: 'Left',
+    gradient: 'from-slate-500/10 via-gray-500/5 to-transparent',
+    accent: 'bg-slate-500',
+    text: 'text-slate-600 dark:text-slate-400',
+  },
+} as const;
+
 export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
-  const stateVariant = {
-    TO_REVIEW: 'to-review',
-    INTERVIEW_SCHEDULED: 'interview',
-    SELECTED: 'selected',
-    JOINED: 'joined',
-    REJECTED: 'rejected',
-    LEFT_COMPANY: 'rejected',
-  } as const;
+  const config = stateConfig[candidate.currentState];
 
   return (
     <button
       onClick={onClick}
-      className="candidate-card group w-full text-left animate-slide-up transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20"
+      className={`
+        group relative w-full text-left overflow-hidden
+        rounded-2xl border border-border/40 bg-card
+        p-5 transition-all duration-300
+        hover:border-border hover:shadow-xl hover:shadow-black/5
+        hover:-translate-y-1
+      `}
       aria-label={`View details for ${candidate.name}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground truncate transition-colors group-hover:text-primary">{candidate.name}</h3>
-          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-            {candidate.experienceSummary}
-          </p>
-        </div>
-        <Badge variant={stateVariant[candidate.currentState]} className="shrink-0">
-          {candidate.currentState.replace(/_/g, ' ')}
-        </Badge>
-      </div>
+      {/* Gradient background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-60 transition-opacity group-hover:opacity-100`} />
+      
+      {/* Accent bar */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${config.accent} rounded-l-2xl`} />
 
-      {candidate.skills.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {candidate.skills.slice(0, 3).map((skill, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
-            >
-              {skill}
+      <div className="relative">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground truncate text-base leading-tight">
+              {candidate.name}
+            </h3>
+            <span className={`text-xs font-medium ${config.text} mt-0.5 inline-block`}>
+              {config.label}
             </span>
-          ))}
-          {candidate.skills.length > 3 && (
-            <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              +{candidate.skills.length - 3}
-            </span>
-          )}
+          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 transition-all group-hover:bg-primary group-hover:text-primary-foreground">
+            <ArrowUpRight className="h-4 w-4" />
+          </div>
         </div>
-      )}
 
-      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Briefcase className="h-3.5 w-3.5" />
-          <span>{candidate.skills.length} skills</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}</span>
-        </div>
+        {/* Skills */}
+        {candidate.skills.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {candidate.skills.slice(0, 2).map((skill, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+              >
+                {skill}
+              </span>
+            ))}
+            {candidate.skills.length > 2 && (
+              <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                +{candidate.skills.length - 2}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <p className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}
+        </p>
       </div>
     </button>
   );
