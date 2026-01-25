@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -6,71 +6,18 @@ import { KanbanBoard } from '@/components/candidates/KanbanBoard';
 import { RecentRequests } from '@/components/dashboard/RecentRequests';
 import { CandidateDetailModal } from '@/components/candidates/CandidateDetailModal';
 import { apiClient } from '@/lib/api';
-import { useSSE, SSEEvent } from '@/hooks/useSSE';
 import type { Candidate } from '@/types/ats';
-import { Loader2, RefreshCw, Users, AlertCircle, CalendarCheck, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, RefreshCw, Users, AlertCircle, CalendarCheck } from 'lucide-react';
 import { isToday } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
   const { isAuthenticated, error } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-
-  // Handle SSE events for real-time updates
-  const handleSSEEvent = useCallback((event: SSEEvent) => {
-    if (event.type === 'candidate_status_change' && event.candidateId) {
-      // Refresh the specific candidate or reload all
-      apiClient.getCandidate(event.candidateId).then((updated) => {
-        setCandidates((prev) =>
-          prev.map((c) => (c.id === updated.id ? updated : c))
-        );
-        toast({
-          title: 'Candidate Updated',
-          description: `${updated.name} status changed to ${event.newStatus}`,
-        });
-      }).catch(console.error);
-    } else if (event.type === 'candidate_created') {
-      // Reload all candidates for new additions
-      loadCandidates();
-      toast({
-        title: 'New Candidate',
-        description: 'A new candidate has been assigned to you',
-      });
-    } else if (event.type === 'interview_scheduled' || event.type === 'feedback_submitted') {
-      // Refresh the specific candidate
-      if (event.candidateId) {
-        apiClient.getCandidate(event.candidateId).then((updated) => {
-          setCandidates((prev) =>
-            prev.map((c) => (c.id === updated.id ? updated : c))
-          );
-        }).catch(console.error);
-      }
-    }
-  }, [toast]);
-
-  const { isConnected, reconnect } = useSSE({
-    enabled: isAuthenticated,
-    onEvent: handleSSEEvent,
-    onConnect: () => {
-      toast({
-        title: 'Connected',
-        description: 'Real-time updates enabled',
-      });
-    },
-    onDisconnect: () => {
-      toast({
-        title: 'Disconnected',
-        description: 'Real-time updates paused',
-        variant: 'destructive',
-      });
-    },
-  });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -137,36 +84,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* SSE Connection Status */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={reconnect}
-              className={`gap-2 ${isConnected ? 'text-green-600' : 'text-muted-foreground'}`}
-              title={isConnected ? 'Real-time updates active' : 'Click to reconnect'}
-            >
-              {isConnected ? (
-                <Wifi className="h-4 w-4" />
-              ) : (
-                <WifiOff className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline text-xs">
-                {isConnected ? 'Live' : 'Offline'}
-              </span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadCandidates}
-              disabled={isLoading}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadCandidates}
+            disabled={isLoading}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {/* Content */}

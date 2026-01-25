@@ -1,47 +1,30 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { TokenValidationResult, LoginCredentials, LoginResponse } from '@/types/ats';
-import { apiClient, API_BASE } from '@/lib/api';
+import type { TokenValidationResult } from '@/types/ats';
+import { apiClient } from '@/lib/api';
 
 interface AuthState {
   isValidating: boolean;
   isAuthenticated: boolean;
   clientName: string | null;
-  error: TokenValidationResult['error'] | string | null;
+  error: TokenValidationResult['error'] | null;
   expiresAt: Date | null;
 }
 
 interface AuthContextValue extends AuthState {
   validateToken: (token: string) => Promise<boolean>;
-  login: (credentials: LoginCredentials) => Promise<boolean>;
-  loginWithOAuth: (provider: 'google' | 'github') => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_STORAGE_KEY = 'ats_auth_token';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    isValidating: true, // Start as validating to check for existing token
+    isValidating: false,
     isAuthenticated: false,
     clientName: null,
     error: null,
     expiresAt: null,
   });
-
-  // Check for existing token on mount
-  useEffect(() => {
-    const existingToken = apiClient.getToken();
-    if (existingToken) {
-      // Validate the existing token
-      validateToken(existingToken).finally(() => {
-        setState(prev => ({ ...prev, isValidating: false }));
-      });
-    } else {
-      setState(prev => ({ ...prev, isValidating: false }));
-    }
-  }, []);
 
   const validateToken = useCallback(async (token: string): Promise<boolean> => {
     setState(prev => ({ ...prev, isValidating: true, error: null }));
@@ -51,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.valid) {
         apiClient.setToken(token);
-        sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
         setState({
           isValidating: false,
           isAuthenticated: true,
@@ -61,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         return true;
       } else {
-        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
         setState({
           isValidating: false,
           isAuthenticated: false,
@@ -72,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     } catch {
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
       setState({
         isValidating: false,
         isAuthenticated: false,
@@ -84,47 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
-    setState(prev => ({ ...prev, isValidating: true, error: null }));
-
-    try {
-      const response: LoginResponse = await apiClient.login(credentials);
-
-      // Token is already set in apiClient.login()
-      setState({
-        isValidating: false,
-        isAuthenticated: true,
-        clientName: null, // Will be fetched separately if needed
-        error: null,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Assume 24h expiry
-      });
-      return true;
-    } catch (err: unknown) {
-      const errorMessage = (err as { message?: string; detail?: string })?.message ||
-        (err as { message?: string; detail?: string })?.detail ||
-        'Login failed';
-      setState({
-        isValidating: false,
-        isAuthenticated: false,
-        clientName: null,
-        error: errorMessage,
-        expiresAt: null,
-      });
-      return false;
-    }
-  }, []);
-
-  const loginWithOAuth = useCallback(async (provider: 'google' | 'github'): Promise<void> => {
-    // Redirect to backend OAuth endpoint
-    // The backend will handle the OAuth flow and redirect back with a token
-    const currentUrl = window.location.origin;
-    const redirectUrl = `${API_BASE}/auth/${provider}?redirect_uri=${encodeURIComponent(currentUrl + '/auth/callback')}`;
-    window.location.href = redirectUrl;
-  }, []);
-
   const logout = useCallback(() => {
     apiClient.clearToken();
-    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     setState({
       isValidating: false,
       isAuthenticated: false,
@@ -140,9 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkExpiration = () => {
       if (state.expiresAt && new Date() > state.expiresAt) {
-        logout();
         setState(prev => ({
           ...prev,
+          isAuthenticated: false,
           error: 'expired',
         }));
       }
@@ -150,10 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(checkExpiration, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [state.expiresAt, logout]);
+  }, [state.expiresAt]);
 
   return (
-    <AuthContext.Provider value={{ ...state, validateToken, login, loginWithOAuth, logout }}>
+    <AuthContext.Provider value={{ ...state, validateToken, logout }}>
       {children}
     </AuthContext.Provider>
   );
