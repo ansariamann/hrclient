@@ -16,7 +16,6 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   validateToken: (token: string) => Promise<boolean>;
-  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -146,10 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
   }, [validateToken]);
-
   const logout = useCallback(() => {
     apiClient.clearToken();
-    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     setState({
       isValidating: false,
       isAuthenticated: false,
@@ -165,9 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkExpiration = () => {
       if (state.expiresAt && new Date() > state.expiresAt) {
-        logout();
         setState(prev => ({
           ...prev,
+          isAuthenticated: false,
           error: 'expired',
         }));
       }
@@ -175,10 +172,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(checkExpiration, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [state.expiresAt, logout]);
+  }, [state.expiresAt]);
 
   return (
-    <AuthContext.Provider value={{ ...state, validateToken, login, logout }}>
+    <AuthContext.Provider value={{ ...state, validateToken, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,8 +1,5 @@
 import type {
   Candidate,
-  Application,
-  BackendCandidateResponse,
-  BackendApplicationResponse,
   ApplicationTimeline,
   TokenValidationResult,
   ScheduleInterviewPayload,
@@ -10,8 +7,6 @@ import type {
   LeftCompanyPayload,
   InterviewFeedbackPayload,
   ApiError,
-  LoginCredentials,
-  LoginResponse,
 } from '@/types/ats';
 
 import { API_URL, DEMO_MODE } from './config';
@@ -21,131 +16,25 @@ const TOKEN_STORAGE_KEY = 'ats_client_token';
 
 // Mock data imports for demo mode fallback
 import { mockCandidates, mockTimeline, mockTokenValidation } from './mockData';
+
+// Demo mode flag - set to true to use mock data
+const DEMO_MODE = true;
+
+// API base URL - would be configured via environment variable
+const API_BASE = '/api';
+
+// In-memory state for demo mode
 let demoCandidates = [...mockCandidates];
-
-/**
- * Transform backend candidate response to frontend Candidate type
- */
-function transformCandidate(backend: BackendCandidateResponse, application?: BackendApplicationResponse): Candidate {
-  // Extract skills array from JSONB format
-  let skills: string[] = [];
-  if (backend.skills) {
-    if (Array.isArray(backend.skills)) {
-      skills = backend.skills;
-    } else if (backend.skills.skills && Array.isArray(backend.skills.skills)) {
-      skills = backend.skills.skills;
-    } else if (typeof backend.skills === 'object') {
-      skills = Object.keys(backend.skills);
-    }
-  }
-
-  // Build experience summary from experience JSONB
-  let experienceSummary = '';
-  if (backend.experience) {
-    if (typeof backend.experience === 'string') {
-      experienceSummary = backend.experience;
-    } else if (backend.experience.summary) {
-      experienceSummary = backend.experience.summary;
-    } else if (backend.experience.years) {
-      experienceSummary = `${backend.experience.years} years of experience`;
-    }
-  }
-
-  // Map backend status to frontend state
-  const stateMap: Record<string, Candidate['currentState']> = {
-    'ACTIVE': 'TO_REVIEW',
-    'INACTIVE': 'REJECTED',
-    'LEFT': 'LEFT_COMPANY',
-    'HIRED': 'JOINED',
-    'REJECTED': 'REJECTED',
-  };
-
-  // If we have application data, use that for state
-  let currentState: Candidate['currentState'] = stateMap[backend.status] || 'TO_REVIEW';
-  let applicationId = '';
-
-  if (application) {
-    const appStateMap: Record<string, Candidate['currentState']> = {
-      'RECEIVED': 'TO_REVIEW',
-      'SCREENING': 'TO_REVIEW',
-      'INTERVIEW_SCHEDULED': 'INTERVIEW_SCHEDULED',
-      'INTERVIEWED': 'INTERVIEW_SCHEDULED',
-      'OFFER_MADE': 'SELECTED',
-      'HIRED': 'JOINED',
-      'REJECTED': 'REJECTED',
-      'WITHDRAWN': 'REJECTED',
-    };
-    currentState = appStateMap[application.status] || 'TO_REVIEW';
-    applicationId = application.id;
-  }
-
-  // Determine allowed actions based on state
-  const allowedActionsMap: Record<Candidate['currentState'], Candidate['allowedActions']> = {
-    'TO_REVIEW': ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
-    'INTERVIEW_SCHEDULED': ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
-    'SELECTED': ['REJECT'],
-    'JOINED': ['MARK_LEFT_COMPANY'],
-    'REJECTED': [],
-    'LEFT_COMPANY': [],
-  };
-
-  return {
-    id: backend.id,
-    applicationId: applicationId,
-    name: backend.name,
-    email: backend.email,
-    phone: backend.phone,
-    location: backend.location,
-    currentState,
-    skills,
-    experienceSummary,
-    resumeUrl: undefined, // Backend doesn't have direct resume URL on candidate
-    allowedActions: allowedActionsMap[currentState],
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
-  };
-}
-
-/**
- * Transform backend application response to frontend Application type
- */
-function transformApplication(backend: BackendApplicationResponse): Application {
-  return {
-    id: backend.id,
-    candidateId: backend.candidate_id,
-    clientId: backend.client_id,
-    jobTitle: backend.job_title,
-    applicationDate: backend.application_date,
-    status: backend.status,
-    flaggedForReview: backend.flagged_for_review,
-    flagReason: backend.flag_reason,
-    isDeleted: backend.is_deleted,
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
-    candidate: backend.candidate ? transformCandidate(backend.candidate) : undefined,
-  };
-}
 
 class ApiClient {
   private token: string | null = null;
 
-  constructor() {
-    // Try to restore token from storage
-    this.token = localStorage.getItem(TOKEN_STORAGE_KEY);
-  }
-
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
   }
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-  }
-
-  getToken(): string | null {
-    return this.token;
   }
 
   private async request<T>(
@@ -169,11 +58,6 @@ class ApiClient {
         message: 'An unexpected error occurred',
       }));
       throw error;
-    }
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-      return {} as T;
     }
 
     return response.json();
@@ -229,7 +113,10 @@ class ApiClient {
    */
   async validateToken(token: string): Promise<TokenValidationResult> {
     if (DEMO_MODE) {
+      // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Demo token validation - accept any token starting with "demo"
       if (token.startsWith('demo') || token === 'test') {
         return mockTokenValidation;
       }
@@ -265,37 +152,16 @@ class ApiClient {
     }
   }
 
-  // ==================== Candidates ====================
-
-  /**
-   * Get all candidates with their applications
-   */
+  // Candidates
   async getCandidates(): Promise<Candidate[]> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 500));
       return demoCandidates;
     }
 
-    // Get applications which include candidate data
-    const applications = await this.request<BackendApplicationResponse[]>('/applications/');
-
-    // Transform to frontend Candidate type
-    const candidates: Candidate[] = [];
-    const seenCandidates = new Set<string>();
-
-    for (const app of applications) {
-      if (app.candidate && !seenCandidates.has(app.candidate.id)) {
-        seenCandidates.add(app.candidate.id);
-        candidates.push(transformCandidate(app.candidate, app));
-      }
-    }
-
-    return candidates;
+    return this.request<Candidate[]>('/candidates');
   }
 
-  /**
-   * Get a single candidate by ID
-   */
   async getCandidate(id: string): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -306,124 +172,19 @@ class ApiClient {
       return candidate;
     }
 
-    const backend = await this.request<BackendCandidateResponse>(`/candidates/${id}`);
-
-    // Get applications for this candidate to determine state
-    const applications = await this.request<BackendApplicationResponse[]>(`/applications/candidate/${id}`);
-    const latestApp = applications.length > 0 ? applications[0] : undefined;
-
-    return transformCandidate(backend, latestApp);
+    return this.request<Candidate>(`/candidates/${id}`);
   }
 
-  /**
-   * Get candidate timeline (application history)
-   */
   async getCandidateTimeline(id: string): Promise<ApplicationTimeline[]> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 400));
       return mockTimeline[id] || [];
     }
 
-    // For now, construct timeline from applications
-    // This would be better served by a dedicated backend endpoint
-    const applications = await this.request<BackendApplicationResponse[]>(`/applications/candidate/${id}`);
-
-    const timeline: ApplicationTimeline[] = [];
-
-    for (const app of applications) {
-      // Add application creation as timeline event
-      timeline.push({
-        id: `timeline-${app.id}-created`,
-        candidateId: id,
-        eventType: 'state_change',
-        state: 'TO_REVIEW',
-        timestamp: app.created_at,
-        actor: 'system',
-        note: `Application received for ${app.job_title || 'position'}`,
-      });
-
-      // Add status as current state
-      if (app.status !== 'RECEIVED') {
-        const stateMap: Record<string, ApplicationTimeline['state']> = {
-          'SCREENING': 'TO_REVIEW',
-          'INTERVIEW_SCHEDULED': 'INTERVIEW_SCHEDULED',
-          'INTERVIEWED': 'INTERVIEW_SCHEDULED',
-          'OFFER_MADE': 'SELECTED',
-          'HIRED': 'JOINED',
-          'REJECTED': 'REJECTED',
-          'WITHDRAWN': 'REJECTED',
-        };
-
-        timeline.push({
-          id: `timeline-${app.id}-status`,
-          candidateId: id,
-          eventType: 'state_change',
-          state: stateMap[app.status],
-          timestamp: app.updated_at,
-          actor: 'client',
-        });
-      }
-    }
-
-    return timeline.sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    return this.request<ApplicationTimeline[]>(`/candidates/${id}/timeline`);
   }
 
-  // ==================== Applications ====================
-
-  /**
-   * Get all applications
-   */
-  async getApplications(filters?: {
-    status?: string;
-    flaggedOnly?: boolean;
-    includeDeleted?: boolean;
-  }): Promise<Application[]> {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('application_status', filters.status);
-    if (filters?.flaggedOnly) params.append('flagged_only', 'true');
-    if (filters?.includeDeleted) params.append('include_deleted', 'true');
-
-    const queryString = params.toString();
-    const endpoint = `/applications/${queryString ? `?${queryString}` : ''}`;
-
-    const applications = await this.request<BackendApplicationResponse[]>(endpoint);
-    return applications.map(transformApplication);
-  }
-
-  /**
-   * Get application by ID
-   */
-  async getApplication(id: string): Promise<Application> {
-    const backend = await this.request<BackendApplicationResponse>(`/applications/${id}`);
-    return transformApplication(backend);
-  }
-
-  /**
-   * Update application status
-   */
-  async updateApplicationStatus(
-    applicationId: string,
-    newStatus: string,
-    forceUpdate: boolean = false
-  ): Promise<Application> {
-    const params = new URLSearchParams();
-    params.append('new_status', newStatus);
-    if (forceUpdate) params.append('force_update', 'true');
-
-    const backend = await this.request<BackendApplicationResponse>(
-      `/applications/${applicationId}/status?${params.toString()}`,
-      { method: 'PUT' }
-    );
-    return transformApplication(backend);
-  }
-
-  // ==================== Actions ====================
-
-  /**
-   * Schedule an interview for a candidate
-   */
+  // Actions
   async scheduleInterview(payload: ScheduleInterviewPayload): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -442,22 +203,12 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    // Get the application ID from the candidate
-    const candidate = await this.getCandidate(payload.candidateId);
-    if (!candidate.applicationId) {
-      throw { code: 'NO_APPLICATION', message: 'Candidate has no active application' };
-    }
-
-    // Update application status
-    await this.updateApplicationStatus(candidate.applicationId, 'INTERVIEW_SCHEDULED');
-
-    // Return updated candidate
-    return this.getCandidate(payload.candidateId);
+    return this.request<Candidate>('/actions/schedule-interview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
-  /**
-   * Submit interview feedback
-   */
   async submitFeedback(payload: InterviewFeedbackPayload): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -489,24 +240,12 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    // For now, we'll update the candidate's remark field with feedback
-    // A proper implementation would need a dedicated feedback endpoint
-    const candidate = await this.getCandidate(payload.candidateId);
-
-    // Update candidate with feedback as remark
-    await this.request(`/candidates/${payload.candidateId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        remark: `Round ${payload.roundNumber} Feedback (${payload.recommendation}, ${payload.rating}/5): ${payload.feedback}`,
-      }),
+    return this.request<Candidate>('/actions/submit-feedback', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
-
-    return this.getCandidate(payload.candidateId);
   }
 
-  /**
-   * Select a candidate
-   */
   async selectCandidate(candidateId: string): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -525,18 +264,12 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    const candidate = await this.getCandidate(candidateId);
-    if (!candidate.applicationId) {
-      throw { code: 'NO_APPLICATION', message: 'Candidate has no active application' };
-    }
-
-    await this.updateApplicationStatus(candidate.applicationId, 'OFFER_MADE');
-    return this.getCandidate(candidateId);
+    return this.request<Candidate>('/actions/select', {
+      method: 'POST',
+      body: JSON.stringify({ candidateId }),
+    });
   }
 
-  /**
-   * Reject a candidate
-   */
   async rejectCandidate(payload: RejectPayload): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -555,28 +288,12 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    const candidate = await this.getCandidate(payload.candidateId);
-    if (!candidate.applicationId) {
-      throw { code: 'NO_APPLICATION', message: 'Candidate has no active application' };
-    }
-
-    await this.updateApplicationStatus(candidate.applicationId, 'REJECTED');
-
-    // Update candidate with rejection reason
-    await this.request(`/candidates/${payload.candidateId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        remark: `Rejected: ${payload.reason} - ${payload.feedback}`,
-        status: 'REJECTED',
-      }),
+    return this.request<Candidate>('/actions/reject', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
-
-    return this.getCandidate(payload.candidateId);
   }
 
-  /**
-   * Mark candidate as left company
-   */
   async markLeftCompany(payload: LeftCompanyPayload): Promise<Candidate> {
     if (DEMO_MODE) {
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -595,32 +312,10 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    // Update candidate status to LEFT
-    await this.request(`/candidates/${payload.candidateId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: 'LEFT',
-        remark: `Left company: ${payload.reason} - ${payload.feedback}${payload.lastWorkingDate ? ` (Last day: ${payload.lastWorkingDate})` : ''}`,
-      }),
+    return this.request<Candidate>('/actions/left-company', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
-
-    return this.getCandidate(payload.candidateId);
-  }
-
-  // ==================== Statistics ====================
-
-  /**
-   * Get candidate statistics
-   */
-  async getCandidateStats(): Promise<Record<string, unknown>> {
-    return this.request('/candidates/stats/summary');
-  }
-
-  /**
-   * Get application statistics
-   */
-  async getApplicationStats(): Promise<Record<string, unknown>> {
-    return this.request('/applications/stats/summary');
   }
 }
 

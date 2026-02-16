@@ -5,7 +5,6 @@ import {
   Users,
   CalendarCheck,
   UserCheck,
-  XCircle,
   Clock,
 } from "lucide-react";
 import {
@@ -26,7 +25,6 @@ const mainItems = [
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Interviews", url: "/interviews", icon: CalendarCheck },
   { title: "Selected", url: "/selected", icon: UserCheck },
-  { title: "Rejected", url: "/rejected", icon: XCircle },
 ];
 
 export function AppSidebar() {
