@@ -252,3 +252,16 @@ export const BACKEND_STATUS_TO_STATE: Record<string, CandidateState> = {
   'OFFER_MADE': 'SELECTED',
   'WITHDRAWN': 'REJECTED',
 };
+
+// User and Auth Types
+export type UserRole = 'hr_admin' | 'hr_recruiter' | 'client_admin' | 'client_user';
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role: string;
+  client_id: string;
+  client_name?: string;
+  created_at: string;
+}

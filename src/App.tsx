@@ -15,6 +15,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -26,11 +28,11 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/candidates" element={<Candidates />} />
-              <Route path="/interviews" element={<Interviews />} />
-              <Route path="/selected" element={<Selected />} />
-              <Route path="/rejected" element={<Rejected />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/candidates" element={<ProtectedRoute><Candidates /></ProtectedRoute>} />
+              <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
+              <Route path="/selected" element={<ProtectedRoute><Selected /></ProtectedRoute>} />
+              <Route path="/rejected" element={<ProtectedRoute><Rejected /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

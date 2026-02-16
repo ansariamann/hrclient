@@ -14,11 +14,7 @@ import type {
   LoginResponse,
 } from '@/types/ats';
 
-// Demo mode flag - set to false to use real backend
-const DEMO_MODE = false;
-
-// API base URL - configured via environment variable
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_URL, DEMO_MODE } from './config';
 
 // Storage keys
 const TOKEN_STORAGE_KEY = 'ats_client_token';
@@ -162,7 +158,7 @@ class ApiClient {
       ...options.headers,
     };
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers,
     });
@@ -207,7 +203,7 @@ class ApiClient {
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await fetch(`${API_BASE}/auth/login`, {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -245,7 +241,7 @@ class ApiClient {
       this.setToken(token);
 
       // Try to get current user info to validate token
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

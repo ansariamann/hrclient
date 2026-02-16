@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { TokenValidationResult, LoginCredentials, LoginResponse } from '@/types/ats';
+import type { TokenValidationResult, LoginCredentials, LoginResponse, User } from '@/types/ats';
 import { apiClient } from '@/lib/api';
 
 interface AuthState {
   isValidating: boolean;
   isAuthenticated: boolean;
   clientName: string | null;
+  clientId: string | null;
+  role: string | null;
+  user: User | null;
   error: TokenValidationResult['error'] | string | null;
   expiresAt: Date | null;
+  token: string | null;
 }
 
 interface AuthContextValue extends AuthState {
@@ -20,98 +24,128 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_STORAGE_KEY = 'ats_auth_token';
 
+const initialState: AuthState = {
+  isAuthenticated: false,
+  isValidating: true,
+  token: null,
+  clientId: null,
+  clientName: null,
+  role: null,
+  user: null,
+};
+
+import { API_URL, DEMO_MODE } from '@/lib/config';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    isValidating: true, // Start as validating to check for existing token
-    isAuthenticated: false,
-    clientName: null,
-    error: null,
-    expiresAt: null,
-  });
+  const [state, setState] = useState<AuthState>(initialState);
+
+  const validateToken = useCallback(async (token: string) => {
+    setState(prev => ({ ...prev, isValidating: true }));
+
+    try {
+      if (DEMO_MODE) {
+        setState({
+          isAuthenticated: true,
+          isValidating: false,
+          token: 'demo-token',
+          clientId: 'demo-client-id',
+          clientName: 'Demo Client',
+          role: 'client_admin',
+          user: {
+            id: 'demo-user',
+            email: 'demo@client.com',
+            role: 'client_admin',
+            client_id: 'demo-client-id',
+            client_name: 'Demo Client',
+            created_at: new Date().toISOString()
+          }
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const user: User = await response.json();
+        localStorage.setItem(TOKEN_STORAGE_KEY, token); // Ensure token is stored if validation succeeds
+        apiClient.setToken(token); // Sync token with API client
+        setState({
+          isAuthenticated: true,
+          isValidating: false,
+          token,
+          clientId: user.client_id,
+          clientName: user.client_name || 'Client',
+          role: user.role,
+          user: user
+        });
+      } else {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        setState({ ...initialState, isValidating: false });
+      }
+    } catch (error) {
+      console.error('Token validation error:', error);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      setState({ ...initialState, isValidating: false });
+    }
+  }, []);
 
   // Check for existing token on mount
   useEffect(() => {
-    const existingToken = apiClient.getToken();
+    const existingToken = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (existingToken) {
-      // Validate the existing token
-      validateToken(existingToken).finally(() => {
-        setState(prev => ({ ...prev, isValidating: false }));
-      });
+      validateToken(existingToken);
     } else {
       setState(prev => ({ ...prev, isValidating: false }));
     }
-  }, []);
+  }, [validateToken]);
 
-  const validateToken = useCallback(async (token: string): Promise<boolean> => {
-    setState(prev => ({ ...prev, isValidating: true, error: null }));
-
-    try {
-      const result = await apiClient.validateToken(token);
-
-      if (result.valid) {
-        apiClient.setToken(token);
-        sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-        setState({
-          isValidating: false,
-          isAuthenticated: true,
-          clientName: result.clientName || null,
-          error: null,
-          expiresAt: result.expiresAt ? new Date(result.expiresAt) : null,
-        });
-        return true;
-      } else {
-        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        setState({
-          isValidating: false,
-          isAuthenticated: false,
-          clientName: null,
-          error: result.error || 'invalid',
-          expiresAt: null,
-        });
-        return false;
-      }
-    } catch {
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-      setState({
-        isValidating: false,
-        isAuthenticated: false,
-        clientName: null,
-        error: 'invalid',
-        expiresAt: null,
-      });
-      return false;
-    }
-  }, []);
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
     setState(prev => ({ ...prev, isValidating: true, error: null }));
 
     try {
-      const response: LoginResponse = await apiClient.login(credentials);
+      if (DEMO_MODE) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, 'demo-token');
+        await validateToken('demo-token');
+        return true;
+      }
 
-      // Token is already set in apiClient.login()
-      setState({
-        isValidating: false,
-        isAuthenticated: true,
-        clientName: null, // Will be fetched separately if needed
-        error: null,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Assume 24h expiry
+      const formData = new URLSearchParams();
+      formData.append('username', credentials.username);
+      formData.append('password', credentials.password);
+
+      const response = await fetch(`${API_URL}/auth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem(TOKEN_STORAGE_KEY, data.access_token);
+      await validateToken(data.access_token);
       return true;
     } catch (err: unknown) {
       const errorMessage = (err as { message?: string; detail?: string })?.message ||
         (err as { message?: string; detail?: string })?.detail ||
         'Login failed';
       setState({
+        ...initialState,
         isValidating: false,
-        isAuthenticated: false,
-        clientName: null,
         error: errorMessage,
-        expiresAt: null,
       });
       return false;
     }
-  }, []);
+  }, [validateToken]);
 
   const logout = useCallback(() => {
     apiClient.clearToken();
