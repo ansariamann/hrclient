@@ -150,15 +150,6 @@ export function AuthScreen() {
           </p>
         </div>
 
-        <div className="w-full border-t pt-6 mt-2">
-          <p className="text-center text-sm text-muted-foreground mb-4">
-            Want to explore the portal?
-          </p>
-          <Button onClick={handleDemoLogin} className="w-full gap-2">
-            <Play className="h-4 w-4" />
-            Enter Demo Mode
-          </Button>
-        </div>
       </div>
     );
   };
