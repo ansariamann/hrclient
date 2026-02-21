@@ -3,12 +3,16 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertCircle, ShieldX, Clock, Users, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function AuthScreen() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isValidating, isAuthenticated, error, validateToken } = useAuth();
+  const { isValidating, isAuthenticated, error, validateToken, login } = useAuth();
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -28,6 +32,11 @@ export function AuthScreen() {
 
   const handleDemoLogin = () => {
     validateToken('demo-token');
+  };
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await login({ username: email, password });
   };
 
   const renderContent = () => {
@@ -87,18 +96,60 @@ export function AuthScreen() {
       );
     }
 
-    // No token provided
+    // No token provided: allow username/password login
     return (
-      <div className="flex flex-col items-center gap-6 animate-slide-up">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <ShieldX className="h-8 w-8 text-muted-foreground" />
-        </div>
+      <div className="flex flex-col gap-6 animate-slide-up">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground">Access Required</h2>
-          <p className="mt-2 max-w-sm text-muted-foreground">
-            Please use the secure link provided in your email to access the candidate portal.
+          <h2 className="text-xl font-semibold text-foreground">Client Login</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in using the credentials created by HR.
           </p>
         </div>
+
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="client.admin@company.com"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isValidating}>
+            {isValidating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </form>
+
+        <div className="w-full border-t pt-6 mt-2">
+          <p className="text-center text-sm text-muted-foreground mb-4">
+            Have an access link instead?
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Open the provided link directly in this browser.
+          </p>
+        </div>
+
         <div className="w-full border-t pt-6 mt-2">
           <p className="text-center text-sm text-muted-foreground mb-4">
             Want to explore the portal?

@@ -139,6 +139,13 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
 
               {/* Metadata */}
               <div className="flex items-center gap-6 text-sm text-muted-foreground border-t pt-4">
+                {(candidate.ctcCurrent || candidate.ctcExpected) && (
+                  <div>
+                    {candidate.ctcCurrent ? `Current CTC: ₹${candidate.ctcCurrent.toLocaleString()}` : 'Current CTC: -'}
+                    {' | '}
+                    {candidate.ctcExpected ? `Expected CTC: ₹${candidate.ctcExpected.toLocaleString()}` : 'Expected CTC: -'}
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   Updated {formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}

@@ -2,6 +2,8 @@ import type {
   Candidate,
   ApplicationTimeline,
   TokenValidationResult,
+  LoginCredentials,
+  LoginResponse,
   ScheduleInterviewPayload,
   RejectPayload,
   LeftCompanyPayload,
@@ -17,14 +19,62 @@ const TOKEN_STORAGE_KEY = 'ats_client_token';
 // Mock data imports for demo mode fallback
 import { mockCandidates, mockTimeline, mockTokenValidation } from './mockData';
 
-// Demo mode flag - set to true to use mock data
-const DEMO_MODE = true;
-
-// API base URL - would be configured via environment variable
-const API_BASE = '/api';
-
 // In-memory state for demo mode
 let demoCandidates = [...mockCandidates];
+
+interface BackendCandidate {
+  id: string;
+  name: string;
+  location?: string | null;
+  resume_file_path?: string | null;
+  ctc_current?: number | null;
+  ctc_expected?: number | null;
+  skills?: { skills?: string[] } | null;
+  experience?: Record<string, unknown> | null;
+  status?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const statusToState: Record<string, Candidate['currentState']> = {
+  ACTIVE: 'TO_REVIEW',
+  INACTIVE: 'REJECTED',
+  HIRED: 'JOINED',
+  LEFT: 'LEFT_COMPANY',
+  REJECTED: 'REJECTED',
+};
+
+function toFrontendCandidate(backend: BackendCandidate): Candidate {
+  const skills = Array.isArray(backend.skills?.skills) ? backend.skills!.skills! : [];
+  const years = typeof backend.experience?.years === 'number' ? backend.experience.years : undefined;
+  const role = typeof backend.experience?.current_role === 'string' ? backend.experience.current_role : undefined;
+  const summaryParts = [
+    years !== undefined ? `${years} years of experience` : undefined,
+    role,
+  ].filter(Boolean);
+
+  const resumeUrl = backend.resume_file_path
+    ? (backend.resume_file_path.startsWith('http') ? backend.resume_file_path : `${API_URL}${backend.resume_file_path}`)
+    : undefined;
+  const ctcCurrent = backend.ctc_current == null ? undefined : Number(backend.ctc_current);
+  const ctcExpected = backend.ctc_expected == null ? undefined : Number(backend.ctc_expected);
+
+  return {
+    id: backend.id,
+    applicationId: `APP-${backend.id.slice(0, 8).toUpperCase()}`,
+    name: backend.name,
+    location: backend.location || undefined,
+    ctcCurrent,
+    ctcExpected,
+    currentState: statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW',
+    skills,
+    experienceSummary: summaryParts.length > 0 ? summaryParts.join(' - ') : 'Experience details not provided',
+    resumeUrl,
+    allowedActions: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
+    createdAt: backend.created_at,
+    updatedAt: backend.updated_at,
+  };
+}
 
 class ApiClient {
   private token: string | null = null;
@@ -159,7 +209,8 @@ class ApiClient {
       return demoCandidates;
     }
 
-    return this.request<Candidate[]>('/candidates');
+    const backend = await this.request<BackendCandidate[]>('/candidates/');
+    return backend.map(toFrontendCandidate);
   }
 
   async getCandidate(id: string): Promise<Candidate> {
@@ -172,7 +223,8 @@ class ApiClient {
       return candidate;
     }
 
-    return this.request<Candidate>(`/candidates/${id}`);
+    const backend = await this.request<BackendCandidate>(`/candidates/${id}`);
+    return toFrontendCandidate(backend);
   }
 
   async getCandidateTimeline(id: string): Promise<ApplicationTimeline[]> {
@@ -288,10 +340,14 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    return this.request<Candidate>('/actions/reject', {
-      method: 'POST',
-      body: JSON.stringify(payload),
+    const backend = await this.request<BackendCandidate>(`/candidates/${payload.candidateId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        status: 'REJECTED',
+        remark: `Rejected (${payload.reason}): ${payload.feedback}`,
+      }),
     });
+    return toFrontendCandidate(backend);
   }
 
   async markLeftCompany(payload: LeftCompanyPayload): Promise<Candidate> {

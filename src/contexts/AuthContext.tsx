@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { TokenValidationResult, LoginCredentials, LoginResponse, User } from '@/types/ats';
+import type { TokenValidationResult, LoginCredentials, User } from '@/types/ats';
 import { apiClient } from '@/lib/api';
 
 interface AuthState {
@@ -16,6 +16,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   validateToken: (token: string) => Promise<boolean>;
+  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -31,6 +32,8 @@ const initialState: AuthState = {
   clientName: null,
   role: null,
   user: null,
+  error: null,
+  expiresAt: null,
 };
 
 import { API_URL, DEMO_MODE } from '@/lib/config';
@@ -57,9 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             client_id: 'demo-client-id',
             client_name: 'Demo Client',
             created_at: new Date().toISOString()
-          }
+          },
+          error: null,
+          expiresAt: null,
         });
-        return;
+        return true;
       }
 
       const response = await fetch(`${API_URL}/auth/me`, {
@@ -79,16 +84,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clientId: user.client_id,
           clientName: user.client_name || 'Client',
           role: user.role,
-          user: user
+          user: user,
+          error: null,
+          expiresAt: null,
         });
+        return true;
       } else {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setState({ ...initialState, isValidating: false });
+        return false;
       }
     } catch (error) {
       console.error('Token validation error:', error);
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       setState({ ...initialState, isValidating: false });
+      return false;
     }
   }, []);
 
@@ -117,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       formData.append('username', credentials.username);
       formData.append('password', credentials.password);
 
-      const response = await fetch(`${API_URL}/auth/token`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -146,11 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [validateToken]);
   const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     apiClient.clearToken();
     setState({
       isValidating: false,
       isAuthenticated: false,
+      token: null,
+      clientId: null,
       clientName: null,
+      role: null,
+      user: null,
       error: null,
       expiresAt: null,
     });
@@ -175,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.expiresAt]);
 
   return (
-    <AuthContext.Provider value={{ ...state, validateToken, logout }}>
+    <AuthContext.Provider value={{ ...state, validateToken, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

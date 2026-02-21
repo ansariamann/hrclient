@@ -1,6 +1,6 @@
 import type { Candidate } from '@/types/ats';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Clock3, Hash, MapPin } from 'lucide-react';
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -54,56 +54,75 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
       onClick={onClick}
       className={`
         group relative w-full text-left overflow-hidden
-        rounded-2xl border border-border/40 bg-card
-        p-5 transition-all duration-300
-        hover:border-border hover:shadow-xl hover:shadow-black/5
-        hover:-translate-y-1
+        rounded-xl border border-border/60 bg-card
+        p-4 transition-all duration-200
+        hover:border-primary/40 hover:shadow-lg hover:shadow-black/5
       `}
       aria-label={`View details for ${candidate.name}`}
     >
-      {/* Gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-60 transition-opacity group-hover:opacity-100`} />
-      
-      {/* Accent bar */}
-      <div className={`absolute top-0 left-0 w-1 h-full ${config.accent} rounded-l-2xl`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-50 transition-opacity group-hover:opacity-80`} />
+      <div className={`absolute left-0 top-0 h-full w-1 ${config.accent}`} />
 
-      <div className="relative">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate text-base leading-tight">
+      <div className="relative space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold leading-tight text-foreground">
               {candidate.name}
             </h3>
-            <span className={`text-xs font-medium ${config.text} mt-0.5 inline-block`}>
+            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <Hash className="h-3.5 w-3.5" />
+              <span className="truncate">{candidate.applicationId}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full bg-background/80 px-2 py-0.5 text-xs font-medium ${config.text}`}>
               {config.label}
             </span>
-          </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 transition-all group-hover:bg-primary group-hover:text-primary-foreground">
-            <ArrowUpRight className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 transition-all group-hover:bg-primary group-hover:text-primary-foreground">
+              <ArrowUpRight className="h-4 w-4" />
+            </div>
           </div>
         </div>
 
-        {/* Skills */}
+        {candidate.location && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" />
+            <span className="truncate">{candidate.location}</span>
+          </div>
+        )}
+
+        {(candidate.ctcCurrent || candidate.ctcExpected) && (
+          <p className="text-xs text-muted-foreground">
+            {candidate.ctcCurrent ? `Cur: ₹${candidate.ctcCurrent.toLocaleString()}` : 'Cur: -'}
+            {' | '}
+            {candidate.ctcExpected ? `Exp: ₹${candidate.ctcExpected.toLocaleString()}` : 'Exp: -'}
+          </p>
+        )}
+
+        <p className="max-h-10 overflow-hidden text-xs leading-5 text-muted-foreground">
+          {candidate.experienceSummary}
+        </p>
+
         {candidate.skills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5">
             {candidate.skills.slice(0, 2).map((skill, index) => (
               <span
                 key={index}
-                className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                className="inline-flex items-center rounded-md border border-border/60 bg-background/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
               >
                 {skill}
               </span>
             ))}
             {candidate.skills.length > 2 && (
-              <span className="inline-flex items-center rounded-full bg-foreground/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center rounded-md border border-border/60 bg-background/80 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                 +{candidate.skills.length - 2}
               </span>
             )}
           </div>
         )}
 
-        {/* Footer */}
-        <p className="text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Clock3 className="h-3.5 w-3.5" />
           {formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}
         </p>
       </div>

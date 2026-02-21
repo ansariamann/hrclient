@@ -18,6 +18,9 @@ export interface Candidate {
   id: string;
   applicationId: string;
   name: string;
+  location?: string;
+  ctcCurrent?: number;
+  ctcExpected?: number;
   currentState: CandidateState;
   skills: string[];
   experienceSummary: string;
@@ -115,6 +118,17 @@ export interface TokenValidationResult {
   allowedApplicationIds?: string[];
   expiresAt?: string;
   error?: 'expired' | 'invalid' | 'revoked';
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in?: number;
 }
 
 export interface ApiError {
