@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import Candidates from "./pages/Candidates";
 import Interviews from "./pages/Interviews";
 import Selected from "./pages/Selected";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Index />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/candidates" element={<ProtectedRoute><Candidates /></ProtectedRoute>} />
               <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />

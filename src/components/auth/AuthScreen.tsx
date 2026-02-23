@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertCircle, ShieldX, Clock, Users, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -140,6 +140,15 @@ export function AuthScreen() {
             )}
           </Button>
         </form>
+
+        <div className="flex justify-center">
+          <Link
+            to="/forgot-password"
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         <div className="w-full border-t pt-6 mt-2">
           <p className="text-center text-sm text-muted-foreground mb-4">

@@ -1,5 +1,6 @@
 import type {
   Candidate,
+  ClientAction,
   ApplicationTimeline,
   TokenValidationResult,
   LoginCredentials,
@@ -41,8 +42,27 @@ const statusToState: Record<string, Candidate['currentState']> = {
   INACTIVE: 'REJECTED',
   HIRED: 'JOINED',
   LEFT: 'LEFT_COMPANY',
+  LEFT_COMPANY: 'LEFT_COMPANY',
   REJECTED: 'REJECTED',
+  INTERVIEW_SCHEDULED: 'INTERVIEW_SCHEDULED',
+  SELECTED: 'SELECTED',
 };
+
+function getAllowedActions(state: Candidate['currentState']): ClientAction[] {
+  switch (state) {
+    case 'TO_REVIEW':
+      return ['SCHEDULE_INTERVIEW', 'REJECT'];
+    case 'INTERVIEW_SCHEDULED':
+      return ['SELECT', 'REJECT'];
+    case 'SELECTED':
+    case 'JOINED':
+      return ['MARK_LEFT_COMPANY'];
+    case 'REJECTED':
+    case 'LEFT_COMPANY':
+    default:
+      return [];
+  }
+}
 
 function toFrontendCandidate(backend: BackendCandidate): Candidate {
   const skills = Array.isArray(backend.skills?.skills) ? backend.skills!.skills! : [];
@@ -70,7 +90,7 @@ function toFrontendCandidate(backend: BackendCandidate): Candidate {
     skills,
     experienceSummary: summaryParts.length > 0 ? summaryParts.join(' - ') : 'Experience details not provided',
     resumeUrl,
-    allowedActions: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
+    allowedActions: getAllowedActions(statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW'),
     createdAt: backend.created_at,
     updatedAt: backend.updated_at,
   };
@@ -340,11 +360,12 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    const backend = await this.request<BackendCandidate>(`/candidates/${payload.candidateId}`, {
-      method: 'PUT',
+    const backend = await this.request<BackendCandidate>(`/actions/reject`, {
+      method: 'POST',
       body: JSON.stringify({
-        status: 'REJECTED',
-        remark: `Rejected (${payload.reason}): ${payload.feedback}`,
+        candidateId: payload.candidateId,
+        reason: payload.reason,
+        feedback: payload.feedback,
       }),
     });
     return toFrontendCandidate(backend);
