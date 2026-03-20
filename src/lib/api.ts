@@ -229,7 +229,7 @@ class ApiClient {
       return demoCandidates;
     }
 
-    const backend = await this.request<BackendCandidate[]>('/candidates/');
+    const backend = await this.request<BackendCandidate[]>('/candidates');
     return backend.map(toFrontendCandidate);
   }
 
@@ -275,9 +275,10 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    return this.request<Candidate>('/actions/schedule-interview', {
+    const { candidateId, ...bodyPayload } = payload;
+    return this.request<Candidate>(`/candidates/${candidateId}/schedule-interview`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(bodyPayload),
     });
   }
 
@@ -312,9 +313,10 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    return this.request<Candidate>('/actions/submit-feedback', {
+    const { candidateId, ...bodyPayload } = payload;
+    return this.request<Candidate>(`/candidates/${candidateId}/submit-feedback`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(bodyPayload),
     });
   }
 
@@ -336,9 +338,9 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    return this.request<Candidate>('/actions/select', {
+    return this.request<Candidate>(`/candidates/${candidateId}/select`, {
       method: 'POST',
-      body: JSON.stringify({ candidateId }),
+      body: JSON.stringify({}),
     });
   }
 
@@ -360,10 +362,9 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    const backend = await this.request<BackendCandidate>(`/actions/reject`, {
+    const backend = await this.request<BackendCandidate>(`/candidates/${payload.candidateId}/reject`, {
       method: 'POST',
       body: JSON.stringify({
-        candidateId: payload.candidateId,
         reason: payload.reason,
         feedback: payload.feedback,
       }),
@@ -389,9 +390,10 @@ class ApiClient {
       return demoCandidates[index];
     }
 
-    return this.request<Candidate>('/actions/left-company', {
+    const { candidateId, ...bodyPayload } = payload;
+    return this.request<Candidate>(`/candidates/${candidateId}/left-company`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(bodyPayload),
     });
   }
 }
