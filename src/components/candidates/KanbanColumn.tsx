@@ -38,7 +38,7 @@ export function KanbanColumn({ state, candidates, onCandidateClick }: KanbanColu
         ) : (
           candidates.map((candidate) => (
             <CandidateCard
-              key={candidate.id}
+              key={candidate.applicationId}
               candidate={candidate}
               onClick={() => onCandidateClick(candidate)}
             />

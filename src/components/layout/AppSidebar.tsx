@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   UserCheck,
   Clock,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +26,7 @@ const mainItems = [
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Interviews", url: "/interviews", icon: CalendarCheck },
   { title: "Selected", url: "/selected", icon: UserCheck },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -62,7 +64,7 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       className="flex items-center gap-3"
-                      activeClassName="bg-primary/10 text-primary"
+                      activeClassName="bg-accent text-foreground"
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -83,7 +85,7 @@ export function AppSidebar() {
                   <NavLink
                     to="/dashboard"
                     className="flex items-center gap-3"
-                    activeClassName="bg-primary/10 text-primary"
+                    activeClassName="bg-accent text-foreground"
                   >
                     <Clock className="h-4 w-4" />
                     <span>Recent Requests</span>

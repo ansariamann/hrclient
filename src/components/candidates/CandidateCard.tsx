@@ -1,6 +1,6 @@
 import type { Candidate } from '@/types/ats';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowUpRight, Clock3, Hash, MapPin } from 'lucide-react';
+import { ArrowUpRight, Briefcase, Clock3, Hash, MapPin } from 'lucide-react';
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -53,14 +53,11 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
     <button
       onClick={onClick}
       className={`
-        group relative w-full text-left overflow-hidden
-        rounded-xl border border-border/60 bg-card
-        p-4 transition-all duration-200
-        hover:border-primary/40 hover:shadow-lg hover:shadow-black/5
+        relative w-full overflow-hidden rounded-xl border border-border/60 bg-card p-4 text-left
       `}
       aria-label={`View details for ${candidate.name}`}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-50 transition-opacity group-hover:opacity-80`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-50`} />
       <div className={`absolute left-0 top-0 h-full w-1 ${config.accent}`} />
 
       <div className="relative space-y-3">
@@ -69,6 +66,12 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
             <h3 className="truncate text-base font-semibold leading-tight text-foreground">
               {candidate.name}
             </h3>
+            {candidate.jobTitle && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <Briefcase className="h-3.5 w-3.5" />
+                <span className="truncate">{candidate.jobTitle}</span>
+              </div>
+            )}
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
               <Hash className="h-3.5 w-3.5" />
               <span className="truncate">{candidate.applicationId}</span>
@@ -78,7 +81,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
             <span className={`rounded-full bg-background/80 px-2 py-0.5 text-xs font-medium ${config.text}`}>
               {config.label}
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 transition-all group-hover:bg-primary group-hover:text-primary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5">
               <ArrowUpRight className="h-4 w-4" />
             </div>
           </div>
@@ -123,7 +126,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
 
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock3 className="h-3.5 w-3.5" />
-          {formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(candidate.submittedAt || candidate.updatedAt), { addSuffix: true })}
         </p>
       </div>
     </button>

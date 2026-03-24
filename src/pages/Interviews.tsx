@@ -124,7 +124,7 @@ export default function Interviews() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {candidates.map((candidate) => (
               <CandidateCard
-                key={candidate.id}
+                key={candidate.applicationId}
                 candidate={candidate}
                 onClick={() => setSelectedCandidate(candidate)}
               />

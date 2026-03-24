@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, AlertCircle, ShieldX, Clock, Users, Play } from 'lucide-react';
+import { Loader2, AlertCircle, ShieldX, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,10 +30,6 @@ export function AuthScreen() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleDemoLogin = () => {
-    validateToken('demo-token');
-  };
-
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     await login({ username: email, password });
@@ -46,7 +42,7 @@ export function AuthScreen() {
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <div className="text-center">
             <h2 className="text-xl font-semibold text-foreground">Validating Access</h2>
-            <p className="mt-2 text-muted-foreground">Please wait while we verify your link...</p>
+            <p className="mt-2 text-muted-foreground">Please wait while we verify your session...</p>
           </div>
         </div>
       );
@@ -83,15 +79,9 @@ export function AuthScreen() {
             <h2 className="text-xl font-semibold text-foreground">{config.title}</h2>
             <p className="mt-2 max-w-sm text-muted-foreground">{config.description}</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-            <Button onClick={handleDemoLogin} className="gap-2">
-              <Play className="h-4 w-4" />
-              Try Demo
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
         </div>
       );
     }
@@ -169,7 +159,7 @@ export function AuthScreen() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
           <Users className="h-6 w-6" />
         </div>
-        <span className="text-2xl font-bold text-foreground">Candidate Portal</span>
+        <span className="text-2xl font-bold text-foreground">Client Portal</span>
       </div>
 
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-elevated">
@@ -177,7 +167,7 @@ export function AuthScreen() {
       </div>
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        Secure access powered by encrypted magic links
+        Secure access for provisioned client accounts
       </p>
     </div>
   );

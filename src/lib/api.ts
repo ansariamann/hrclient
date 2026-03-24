@@ -10,24 +10,19 @@ import type {
   LeftCompanyPayload,
   InterviewFeedbackPayload,
   ApiError,
+  User,
 } from '@/types/ats';
 
-import { API_URL, DEMO_MODE } from './config';
-
-// Storage keys
-const TOKEN_STORAGE_KEY = 'ats_client_token';
-
-// Mock data imports for demo mode fallback
-import { mockCandidates, mockTimeline, mockTokenValidation } from './mockData';
-
-// In-memory state for demo mode
-let demoCandidates = [...mockCandidates];
+import { API_URL } from './config';
+import { clearAuthToken, setAuthToken } from './authToken';
 
 interface BackendCandidate {
   id: string;
   name: string;
   location?: string | null;
+  email?: string | null;
   resume_file_path?: string | null;
+  resume_url?: string | null;
   ctc_current?: number | null;
   ctc_expected?: number | null;
   skills?: { skills?: string[] } | null;
@@ -35,6 +30,21 @@ interface BackendCandidate {
   status?: string;
   created_at: string;
   updated_at: string;
+}
+
+interface BackendApplication {
+  id: string;
+  candidate_id: string;
+  client_id: string;
+  job_title?: string | null;
+  application_date: string;
+  status: string;
+  flagged_for_review?: boolean;
+  flag_reason?: string | null;
+  deleted_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  candidate?: BackendCandidate | null;
 }
 
 const statusToState: Record<string, Candidate['currentState']> = {
@@ -64,7 +74,7 @@ function getAllowedActions(state: Candidate['currentState']): ClientAction[] {
   }
 }
 
-function toFrontendCandidate(backend: BackendCandidate): Candidate {
+function buildExperienceSummary(backend: BackendCandidate): string {
   const skills = Array.isArray(backend.skills?.skills) ? backend.skills!.skills! : [];
   const years = typeof backend.experience?.years === 'number' ? backend.experience.years : undefined;
   const role = typeof backend.experience?.current_role === 'string' ? backend.experience.current_role : undefined;
@@ -73,27 +83,57 @@ function toFrontendCandidate(backend: BackendCandidate): Candidate {
     role,
   ].filter(Boolean);
 
+  if (summaryParts.length > 0) {
+    return summaryParts.join(' - ');
+  }
+  if (skills.length > 0) {
+    return `Skills: ${skills.slice(0, 4).join(', ')}`;
+  }
+  return 'Experience details not provided';
+}
+
+function toFrontendCandidate(
+  backend: BackendCandidate,
+  application?: BackendApplication | null
+): Candidate {
+  const skills = Array.isArray(backend.skills?.skills) ? backend.skills!.skills! : [];
+
   const resumeUrl = backend.resume_file_path
     ? (backend.resume_file_path.startsWith('http') ? backend.resume_file_path : `${API_URL}${backend.resume_file_path}`)
+    : backend.resume_url
+      ? (backend.resume_url.startsWith('http') ? backend.resume_url : `${API_URL}${backend.resume_url}`)
     : undefined;
   const ctcCurrent = backend.ctc_current == null ? undefined : Number(backend.ctc_current);
   const ctcExpected = backend.ctc_expected == null ? undefined : Number(backend.ctc_expected);
+  const candidateState = statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW';
 
   return {
     id: backend.id,
-    applicationId: `APP-${backend.id.slice(0, 8).toUpperCase()}`,
+    applicationId: application?.id || `APP-${backend.id.slice(0, 8).toUpperCase()}`,
+    jobTitle: application?.job_title || undefined,
+    applicationStatus: application?.status || undefined,
+    submittedAt: application?.application_date || application?.created_at || backend.created_at,
     name: backend.name,
     location: backend.location || undefined,
     ctcCurrent,
     ctcExpected,
-    currentState: statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW',
+    currentState: candidateState,
     skills,
-    experienceSummary: summaryParts.length > 0 ? summaryParts.join(' - ') : 'Experience details not provided',
+    experienceSummary: buildExperienceSummary(backend),
     resumeUrl,
-    allowedActions: getAllowedActions(statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW'),
+    allowedActions: getAllowedActions(candidateState),
     createdAt: backend.created_at,
     updatedAt: backend.updated_at,
   };
+}
+
+function toFrontendCandidateFromApplication(application: BackendApplication): Candidate | null {
+  const candidate = application.candidate;
+  if (!candidate) {
+    console.warn('Application is missing candidate details, skipping:', application);
+    return null;
+  }
+  return toFrontendCandidate(candidate, application);
 }
 
 class ApiClient {
@@ -101,10 +141,50 @@ class ApiClient {
 
   setToken(token: string) {
     this.token = token;
+    setAuthToken(token);
   }
 
   clearToken() {
     this.token = null;
+    clearAuthToken();
+  }
+
+  private async parseError(response: Response): Promise<ApiError> {
+    const fallbackMessage = `Request failed with status ${response.status}`;
+
+    try {
+      const text = await response.text();
+      if (!text) {
+        return {
+          code: `HTTP_${response.status}`,
+          message: fallbackMessage,
+        };
+      }
+
+      try {
+        const parsed = JSON.parse(text) as {
+          code?: string;
+          message?: string;
+          detail?: string;
+          error?: { message?: string; category?: string };
+        };
+
+        return {
+          code: parsed.code || parsed.error?.category || `HTTP_${response.status}`,
+          message: parsed.error?.message || parsed.detail || parsed.message || fallbackMessage,
+        };
+      } catch {
+        return {
+          code: `HTTP_${response.status}`,
+          message: text,
+        };
+      }
+    } catch {
+      return {
+        code: `HTTP_${response.status}`,
+        message: fallbackMessage,
+      };
+    }
   }
 
   private async request<T>(
@@ -123,14 +203,20 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
-        code: 'UNKNOWN_ERROR',
-        message: 'An unexpected error occurred',
-      }));
+      const error = await this.parseError(response);
+      if (response.status === 401) {
+        this.clearToken();
+        window.location.href = '/login';
+      }
       throw error;
     }
 
-    return response.json();
+    const text = await response.text();
+    if (!text) {
+      return {} as T;
+    }
+
+    return JSON.parse(text) as T;
   }
 
   // ==================== Authentication ====================
@@ -139,25 +225,12 @@ class ApiClient {
    * Login with email and password (OAuth2 compatible)
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      if (credentials.username === 'demo@example.com' && credentials.password === 'demo123') {
-        const response: LoginResponse = {
-          access_token: 'demo-token-12345',
-          token_type: 'bearer',
-        };
-        this.setToken(response.access_token);
-        return response;
-      }
-      throw { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' };
-    }
-
     // OAuth2 form data format
     const formData = new URLSearchParams();
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch(`${API_URL}/auth/client/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -166,10 +239,7 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        code: 'INVALID_CREDENTIALS',
-        message: 'Invalid email or password',
-      }));
+      const error = await this.parseError(response);
       throw error;
     }
 
@@ -182,23 +252,12 @@ class ApiClient {
    * Token validation (for backwards compatibility with token-based auth)
    */
   async validateToken(token: string): Promise<TokenValidationResult> {
-    if (DEMO_MODE) {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Demo token validation - accept any token starting with "demo"
-      if (token.startsWith('demo') || token === 'test') {
-        return mockTokenValidation;
-      }
-      return { valid: false, error: 'invalid' };
-    }
-
     try {
       // Set the token and try to make a request
       this.setToken(token);
 
       // Try to get current user info to validate token
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`${API_URL}/auth/client/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -223,145 +282,76 @@ class ApiClient {
   }
 
   // Candidates
-  async getCandidates(): Promise<Candidate[]> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return demoCandidates;
-    }
+  private async getCandidateApplications(candidateId: string): Promise<BackendApplication[]> {
+    return this.request<BackendApplication[]>(`/candidates/${candidateId}/applications`);
+  }
 
-    const backend = await this.request<BackendCandidate[]>('/candidates');
-    return backend.map(toFrontendCandidate);
+  private async enrichCandidateFromBackend(backend: BackendCandidate): Promise<Candidate> {
+    try {
+      const applications = await this.getCandidateApplications(backend.id);
+      const application = applications[0];
+      return toFrontendCandidate(backend, application);
+    } catch {
+      return toFrontendCandidate(backend);
+    }
+  }
+
+  async getCandidates(): Promise<Candidate[]> {
+    const backend = await this.request<BackendApplication[]>('/applications');
+    return backend.map(toFrontendCandidateFromApplication).filter((c): c is Candidate => c !== null);
+  }
+
+  async getCurrentUser(): Promise<User> {
+    return this.request<User>('/auth/client/me');
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ status: string }> {
+    return this.request<{ status: string }>('/auth/password/change', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
   }
 
   async getCandidate(id: string): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const candidate = demoCandidates.find(c => c.id === id);
-      if (!candidate) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-      return candidate;
-    }
-
     const backend = await this.request<BackendCandidate>(`/candidates/${id}`);
-    return toFrontendCandidate(backend);
+    return this.enrichCandidateFromBackend(backend);
   }
 
   async getCandidateTimeline(id: string): Promise<ApplicationTimeline[]> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      return mockTimeline[id] || [];
-    }
-
     return this.request<ApplicationTimeline[]>(`/candidates/${id}/timeline`);
   }
 
   // Actions
   async scheduleInterview(payload: ScheduleInterviewPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'INTERVIEW_SCHEDULED',
-        allowedActions: ['SCHEDULE_INTERVIEW', 'SELECT', 'REJECT'],
-        updatedAt: new Date().toISOString(),
-      };
-
-      return demoCandidates[index];
-    }
-
     const { candidateId, ...bodyPayload } = payload;
-    return this.request<Candidate>(`/candidates/${candidateId}/schedule-interview`, {
+    const backend = await this.request<BackendCandidate>(`/candidates/${candidateId}/schedule-interview`, {
       method: 'POST',
       body: JSON.stringify(bodyPayload),
     });
+    return this.enrichCandidateFromBackend(backend);
   }
 
   async submitFeedback(payload: InterviewFeedbackPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-
-      // Add feedback to timeline
-      const feedbackEvent = {
-        id: `timeline-feedback-${Date.now()}`,
-        candidateId: payload.candidateId,
-        eventType: 'feedback' as const,
-        timestamp: new Date().toISOString(),
-        actor: 'client' as const,
-        note: payload.feedback,
-        feedbackDetails: {
-          roundNumber: payload.roundNumber,
-          rating: payload.rating,
-          recommendation: payload.recommendation,
-        },
-      };
-
-      if (!mockTimeline[payload.candidateId]) {
-        mockTimeline[payload.candidateId] = [];
-      }
-      mockTimeline[payload.candidateId].push(feedbackEvent);
-
-      return demoCandidates[index];
-    }
-
     const { candidateId, ...bodyPayload } = payload;
-    return this.request<Candidate>(`/candidates/${candidateId}/submit-feedback`, {
+    const backend = await this.request<BackendCandidate>(`/candidates/${candidateId}/submit-feedback`, {
       method: 'POST',
       body: JSON.stringify(bodyPayload),
     });
+    return this.enrichCandidateFromBackend(backend);
   }
 
   async selectCandidate(candidateId: string): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'SELECTED',
-        allowedActions: ['REJECT'],
-        updatedAt: new Date().toISOString(),
-      };
-
-      return demoCandidates[index];
-    }
-
-    return this.request<Candidate>(`/candidates/${candidateId}/select`, {
+    const backend = await this.request<BackendCandidate>(`/candidates/${candidateId}/select`, {
       method: 'POST',
       body: JSON.stringify({}),
     });
+    return this.enrichCandidateFromBackend(backend);
   }
 
   async rejectCandidate(payload: RejectPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'REJECTED',
-        allowedActions: [],
-        updatedAt: new Date().toISOString(),
-      };
-
-      return demoCandidates[index];
-    }
-
     const backend = await this.request<BackendCandidate>(`/candidates/${payload.candidateId}/reject`, {
       method: 'POST',
       body: JSON.stringify({
@@ -369,32 +359,16 @@ class ApiClient {
         feedback: payload.feedback,
       }),
     });
-    return toFrontendCandidate(backend);
+    return this.enrichCandidateFromBackend(backend);
   }
 
   async markLeftCompany(payload: LeftCompanyPayload): Promise<Candidate> {
-    if (DEMO_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const index = demoCandidates.findIndex(c => c.id === payload.candidateId);
-      if (index === -1) {
-        throw { code: 'NOT_FOUND', message: 'Candidate not found' };
-      }
-
-      demoCandidates[index] = {
-        ...demoCandidates[index],
-        currentState: 'LEFT_COMPANY',
-        allowedActions: [],
-        updatedAt: new Date().toISOString(),
-      };
-
-      return demoCandidates[index];
-    }
-
     const { candidateId, ...bodyPayload } = payload;
-    return this.request<Candidate>(`/candidates/${candidateId}/left-company`, {
+    const backend = await this.request<BackendCandidate>(`/candidates/${candidateId}/left-company`, {
       method: 'POST',
       body: JSON.stringify(bodyPayload),
     });
+    return this.enrichCandidateFromBackend(backend);
   }
 }
 

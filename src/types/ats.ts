@@ -17,6 +17,9 @@ export type ClientAction =
 export interface Candidate {
   id: string;
   applicationId: string;
+  jobTitle?: string;
+  applicationStatus?: string;
+  submittedAt?: string;
   name: string;
   location?: string;
   ctcCurrent?: number;

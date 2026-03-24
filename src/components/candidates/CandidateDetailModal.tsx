@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import type { Candidate, ApplicationTimeline } from '@/types/ats';
 import { STATE_LABELS, RECOMMENDATION_LABELS } from '@/types/ats';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CandidateActions } from './CandidateActions';
-import { FileText, Briefcase, Clock, User, Video, Phone, MapPin, Star, MessageSquare, Download } from 'lucide-react';
+import { FileText, Briefcase, Clock, User, Video, Phone, MapPin, Star, MessageSquare, Download, ClipboardList } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { apiClient } from '@/lib/api';
 import { generateCandidateReport } from '@/lib/generateCandidateReport';
@@ -40,7 +40,7 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
         title: 'Report Downloaded',
         description: `PDF report for ${candidate.name} has been generated.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Export Failed',
         description: 'Unable to generate the PDF report. Please try again.',
@@ -71,8 +71,9 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
           <div className="flex items-start justify-between gap-4">
             <div>
               <DialogTitle className="text-xl">{candidate.name}</DialogTitle>
-              <DialogDescription className="mt-1">
-                Application ID: {candidate.applicationId}
+              <DialogDescription className="mt-1 space-y-1">
+                <div>Application ID: {candidate.applicationId}</div>
+                {candidate.jobTitle && <div>Job Title: {candidate.jobTitle}</div>}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -111,7 +112,33 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
 
           <div className="flex-1 overflow-y-auto mt-4">
             <TabsContent value="profile" className="m-0 space-y-6">
-              {/* Experience Summary */}
+              <div>
+                <h4 className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Application Details
+                </h4>
+                <div className="grid gap-3 rounded-lg border border-border p-4 text-sm md:grid-cols-2">
+                  <div>
+                    <p className="text-muted-foreground">Application ID</p>
+                    <p className="font-medium text-foreground">{candidate.applicationId}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Application Status</p>
+                    <p className="font-medium text-foreground">{candidate.applicationStatus || 'RECEIVED'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Job Title</p>
+                    <p className="font-medium text-foreground">{candidate.jobTitle || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Submitted At</p>
+                    <p className="font-medium text-foreground">
+                      {candidate.submittedAt ? format(new Date(candidate.submittedAt), 'MMM d, yyyy - h:mm a') : '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <h4 className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                   <Briefcase className="h-4 w-4" />
@@ -122,7 +149,6 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                 </p>
               </div>
 
-              {/* Skills */}
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">Skills</h4>
                 <div className="flex flex-wrap gap-2">
@@ -137,13 +163,12 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                 </div>
               </div>
 
-              {/* Metadata */}
               <div className="flex items-center gap-6 text-sm text-muted-foreground border-t pt-4">
                 {(candidate.ctcCurrent || candidate.ctcExpected) && (
                   <div>
-                    {candidate.ctcCurrent ? `Current CTC: ₹${candidate.ctcCurrent.toLocaleString()}` : 'Current CTC: -'}
+                    {candidate.ctcCurrent ? `Current CTC: INR ${candidate.ctcCurrent.toLocaleString()}` : 'Current CTC: -'}
                     {' | '}
-                    {candidate.ctcExpected ? `Expected CTC: ₹${candidate.ctcExpected.toLocaleString()}` : 'Expected CTC: -'}
+                    {candidate.ctcExpected ? `Expected CTC: INR ${candidate.ctcExpected.toLocaleString()}` : 'Expected CTC: -'}
                   </div>
                 )}
                 <div className="flex items-center gap-1.5">
@@ -185,7 +210,7 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                   {timeline.map((event) => {
                     const isInterview = event.eventType === 'interview_round';
                     const isFeedback = event.eventType === 'feedback';
-                    
+
                     const getModeIcon = (mode?: string) => {
                       switch (mode) {
                         case 'video': return <Video className="h-3.5 w-3.5" />;
@@ -228,34 +253,29 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                             {isInterview && event.interviewDetails && (
                               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                 {getModeIcon(event.interviewDetails.mode)}
-                                {event.interviewDetails.mode === 'in_person' ? 'In Person' : 
-                                  event.interviewDetails.mode === 'video' ? 'Video' : 'Phone'}
+                                {event.interviewDetails.mode === 'in_person' ? 'In Person' : event.interviewDetails.mode === 'video' ? 'Video' : 'Phone'}
                               </span>
                             )}
                           </div>
-                          
+
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {format(new Date(event.timestamp), 'MMM d, yyyy · h:mm a')}
-                            {event.actor !== 'system' && ` · by ${event.actor}`}
+                            {format(new Date(event.timestamp), 'MMM d, yyyy - h:mm a')}
+                            {event.actor !== 'system' && ` - by ${event.actor}`}
                           </p>
-                          
+
                           {isInterview && event.interviewDetails?.interviewerName && (
                             <p className="text-xs text-muted-foreground mt-1">
                               Interviewer: {event.interviewDetails.interviewerName}
                             </p>
                           )}
-                          
+
                           {isFeedback && event.feedbackDetails && (
                             <div className="mt-2 flex items-center gap-3">
                               <div className="flex items-center gap-1">
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star 
+                                  <Star
                                     key={star}
-                                    className={`h-3.5 w-3.5 ${
-                                      star <= event.feedbackDetails!.rating 
-                                        ? 'text-amber-500 fill-amber-500' 
-                                        : 'text-muted-foreground/30'
-                                    }`}
+                                    className={`h-3.5 w-3.5 ${star <= event.feedbackDetails!.rating ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/30'}`}
                                   />
                                 ))}
                               </div>
@@ -264,7 +284,7 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
                               </Badge>
                             </div>
                           )}
-                          
+
                           {event.note && (
                             <div className="mt-2 flex gap-2 items-start bg-muted rounded-md p-2">
                               <MessageSquare className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
@@ -283,7 +303,6 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
           </div>
         </Tabs>
 
-        {/* Actions */}
         <div className="shrink-0 border-t pt-4 mt-4">
           <CandidateActions candidate={candidate} onActionComplete={onUpdate} timeline={timeline} />
         </div>

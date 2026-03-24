@@ -31,13 +31,13 @@ export function RecentRequests({ candidates, onViewCandidate }: RecentRequestsPr
       <div className="space-y-3">
         {recentCandidates.map((candidate) => (
           <button
-            key={candidate.id}
+            key={candidate.applicationId}
             onClick={() => onViewCandidate(candidate)}
-            className="group flex w-full items-center justify-between rounded-lg bg-muted/30 p-4 text-left transition-all duration-200 hover:bg-muted/60 hover:shadow-sm"
+            className="flex w-full items-center justify-between rounded-lg bg-muted/30 p-4 text-left"
           >
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h3 className="font-medium text-foreground transition-colors group-hover:text-primary">
+                <h3 className="font-medium text-foreground">
                   {candidate.name}
                 </h3>
                 <Badge variant="outline" className="text-xs">
@@ -45,14 +45,14 @@ export function RecentRequests({ candidates, onViewCandidate }: RecentRequestsPr
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
-                {candidate.experienceSummary}
+                {candidate.jobTitle || candidate.experienceSummary}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(candidate.updatedAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(candidate.submittedAt || candidate.updatedAt), { addSuffix: true })}
               </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </button>
         ))}

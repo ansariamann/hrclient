@@ -139,7 +139,7 @@ export default function Selected() {
                     .filter(c => c.currentState === 'JOINED')
                     .map((candidate) => (
                       <CandidateCard
-                        key={candidate.id}
+                        key={candidate.applicationId}
                         candidate={candidate}
                         onClick={() => setSelectedCandidate(candidate)}
                       />
@@ -160,7 +160,7 @@ export default function Selected() {
                     .filter(c => c.currentState === 'SELECTED')
                     .map((candidate) => (
                       <CandidateCard
-                        key={candidate.id}
+                        key={candidate.applicationId}
                         candidate={candidate}
                         onClick={() => setSelectedCandidate(candidate)}
                       />

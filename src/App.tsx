@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Candidates from "./pages/Candidates";
 import Interviews from "./pages/Interviews";
 import Selected from "./pages/Selected";
+import Settings from "./pages/Settings";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/candidates" element={<ProtectedRoute><Candidates /></ProtectedRoute>} />
               <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
               <Route path="/selected" element={<ProtectedRoute><Selected /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
