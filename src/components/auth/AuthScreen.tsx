@@ -184,7 +184,7 @@ export function AuthScreen() {
         
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 text-background w-full">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background/10 backdrop-blur-sm">
               <Users className="h-5 w-5" />
             </div>
@@ -192,19 +192,21 @@ export function AuthScreen() {
           </div>
 
           <div className="max-w-md">
-            <h1 className="text-4xl font-bold tracking-tight leading-tight">
-              Manage your
-              <br />
-              hiring pipeline
-              <br />
-              <span className="text-primary">effortlessly.</span>
+            <h1 className="animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
+              <span className="text-4xl font-bold tracking-tight leading-tight">
+                Manage your
+                <br />
+                hiring pipeline
+                <br />
+                <span className="text-primary">effortlessly.</span>
+              </span>
             </h1>
-            <p className="mt-4 text-sm text-background/60 leading-relaxed max-w-sm">
+            <p className="mt-4 text-sm text-background/60 leading-relaxed max-w-sm animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
               Track candidates, schedule interviews, and collaborate with your team — all in one place.
             </p>
           </div>
 
-          <p className="text-xs text-background/40">
+          <p className="text-xs text-background/40 animate-fade-in" style={{ animationDelay: '0.7s', animationFillMode: 'both' }}>
             Secure access for provisioned client accounts
           </p>
         </div>
