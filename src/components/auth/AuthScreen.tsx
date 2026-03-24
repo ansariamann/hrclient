@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, AlertCircle, ShieldX, Clock, Users } from 'lucide-react';
+import { Loader2, AlertCircle, ShieldX, Clock, Users, Lock, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ export function AuthScreen() {
   const [hasAttempted, setHasAttempted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isFocused, setIsFocused] = useState<string | null>(null);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -38,11 +39,14 @@ export function AuthScreen() {
   const renderContent = () => {
     if (isValidating) {
       return (
-        <div className="flex flex-col items-center gap-4 animate-fade-in">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-foreground">Validating Access</h2>
-            <p className="mt-2 text-muted-foreground">Please wait while we verify your session...</p>
+        <div className="flex flex-col items-center gap-4 animate-fade-in py-12">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+            <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+          </div>
+          <div className="text-center mt-4">
+            <h2 className="text-lg font-semibold text-foreground">Validating Access</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Verifying your session...</p>
           </div>
         </div>
       );
@@ -54,121 +58,179 @@ export function AuthScreen() {
           icon: Clock,
           title: 'Link Expired',
           description: 'This access link has expired. Please request a new link from your HR contact.',
+          color: 'text-amber-500',
+          bg: 'bg-amber-500/10',
         },
         invalid: {
           icon: ShieldX,
           title: 'Invalid Link',
           description: 'This access link is not valid. Please check you have the correct link or request a new one.',
+          color: 'text-destructive',
+          bg: 'bg-destructive/10',
         },
         revoked: {
           icon: AlertCircle,
           title: 'Access Revoked',
           description: 'Your access has been revoked. Please contact your HR representative for assistance.',
+          color: 'text-destructive',
+          bg: 'bg-destructive/10',
         },
       };
 
-      const config = errorConfig[error] || errorConfig.invalid;
+      const config = errorConfig[error as keyof typeof errorConfig] || errorConfig.invalid;
       const Icon = config.icon;
 
       return (
-        <div className="flex flex-col items-center gap-6 animate-slide-up">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <Icon className="h-8 w-8 text-destructive" />
+        <div className="flex flex-col items-center gap-6 animate-slide-up py-8">
+          <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${config.bg}`}>
+            <Icon className={`h-8 w-8 ${config.color}`} />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-foreground">{config.title}</h2>
-            <p className="mt-2 max-w-sm text-muted-foreground">{config.description}</p>
+            <h2 className="text-lg font-semibold text-foreground">{config.title}</h2>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">{config.description}</p>
           </div>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" onClick={() => window.location.reload()} className="rounded-xl">
             Try Again
           </Button>
         </div>
       );
     }
 
-    // No token provided: allow username/password login
     return (
-      <div className="flex flex-col gap-6 animate-slide-up">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground">Client Login</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in using the credentials created by HR.
-          </p>
-        </div>
-
+      <div className="flex flex-col gap-5 animate-slide-up">
         <form onSubmit={handlePasswordLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="client.admin@company.com"
-              required
-            />
+            <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+              Email
+            </Label>
+            <div className={`relative transition-all duration-200 ${isFocused === 'email' ? 'scale-[1.02]' : ''}`}>
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setIsFocused('email')}
+                onBlur={() => setIsFocused(null)}
+                placeholder="you@company.com"
+                required
+                className="pl-10 h-12 rounded-xl bg-muted/50 border-transparent focus-visible:border-primary/30 focus-visible:bg-background transition-all"
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              required
-            />
+            <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+              Password
+            </Label>
+            <div className={`relative transition-all duration-200 ${isFocused === 'password' ? 'scale-[1.02]' : ''}`}>
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setIsFocused('password')}
+                onBlur={() => setIsFocused(null)}
+                placeholder="••••••••"
+                required
+                className="pl-10 h-12 rounded-xl bg-muted/50 border-transparent focus-visible:border-primary/30 focus-visible:bg-background transition-all"
+              />
+            </div>
           </div>
-          <Button type="submit" className="w-full" disabled={isValidating}>
+
+          <div className="flex justify-end">
+            <Link
+              to="/forgot-password"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isValidating}
+            className="w-full h-12 rounded-xl text-sm font-semibold group relative overflow-hidden bg-foreground text-background hover:bg-foreground/90"
+          >
             {isValidating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              <>
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </>
             )}
           </Button>
         </form>
 
-        <div className="flex justify-center">
-          <Link
-            to="/forgot-password"
-            className="text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
-        <div className="w-full border-t pt-6 mt-2">
-          <p className="text-center text-sm text-muted-foreground mb-4">
-            Have an access link instead?
-          </p>
-          <p className="text-center text-xs text-muted-foreground">
-            Open the provided link directly in this browser.
-          </p>
-        </div>
-
+        <p className="text-center text-xs text-muted-foreground pt-2">
+          Have an access link? Open it directly in your browser.
+        </p>
       </div>
     );
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-          <Users className="h-6 w-6" />
+    <div className="flex min-h-screen bg-background">
+      {/* Left decorative panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-foreground">
+        {/* Gradient orbs */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 rounded-full bg-primary/30 blur-3xl" />
+        <div className="absolute bottom-1/4 right-0 w-80 h-80 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 rounded-full bg-accent/10 blur-2xl" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 text-background w-full">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background/10 backdrop-blur-sm">
+              <Users className="h-5 w-5" />
+            </div>
+            <span className="text-lg font-semibold tracking-tight">Client Portal</span>
+          </div>
+
+          <div className="max-w-md">
+            <h1 className="text-4xl font-bold tracking-tight leading-tight">
+              Manage your
+              <br />
+              hiring pipeline
+              <br />
+              <span className="text-primary">effortlessly.</span>
+            </h1>
+            <p className="mt-4 text-sm text-background/60 leading-relaxed max-w-sm">
+              Track candidates, schedule interviews, and collaborate with your team — all in one place.
+            </p>
+          </div>
+
+          <p className="text-xs text-background/40">
+            Secure access for provisioned client accounts
+          </p>
         </div>
-        <span className="text-2xl font-bold text-foreground">Client Portal</span>
       </div>
 
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-elevated">
-        {renderContent()}
-      </div>
+      {/* Right login panel */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-3 mb-10 lg:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background">
+              <Users className="h-5 w-5" />
+            </div>
+            <span className="text-lg font-semibold text-foreground">Client Portal</span>
+          </div>
 
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        Secure access for provisioned client accounts
-      </p>
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Welcome back</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sign in to your account to continue
+            </p>
+          </div>
+
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }
