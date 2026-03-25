@@ -6,6 +6,7 @@ import {
   Users,
   CalendarCheck,
   UserCheck,
+  Briefcase,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const mainItems = [
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Interviews", url: "/interviews", icon: CalendarCheck },
   { title: "Selected", url: "/selected", icon: UserCheck },
+  { title: "New Job", url: "/new-job", icon: Briefcase },
 ];
 
 export function AppSidebar() {

@@ -11,6 +11,8 @@ import type {
   InterviewFeedbackPayload,
   ApiError,
   User,
+  Job,
+  JobInput,
 } from '@/types/ats';
 
 import { API_URL } from './config';
@@ -45,6 +47,21 @@ interface BackendApplication {
   created_at: string;
   updated_at: string;
   candidate?: BackendCandidate | null;
+}
+
+interface BackendJob {
+  id: string;
+  client_id: string;
+  title: string;
+  company_name: string;
+  posting_date: string;
+  requirements?: string | null;
+  experience_required?: number | null;
+  salary_lpa?: number | null;
+  location?: string | null;
+  submitted_by_client?: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const statusToState: Record<string, Candidate['currentState']> = {
@@ -134,6 +151,23 @@ function toFrontendCandidateFromApplication(application: BackendApplication): Ca
     return null;
   }
   return toFrontendCandidate(candidate, application);
+}
+
+function transformJob(backend: BackendJob): Job {
+  return {
+    id: backend.id,
+    clientId: backend.client_id,
+    title: backend.title,
+    companyName: backend.company_name,
+    postingDate: backend.posting_date,
+    requirements: backend.requirements || undefined,
+    experienceRequired: backend.experience_required ?? undefined,
+    salaryLpa: backend.salary_lpa == null ? undefined : Number(backend.salary_lpa),
+    location: backend.location || undefined,
+    submittedByClient: backend.submitted_by_client ?? false,
+    createdAt: backend.created_at,
+    updatedAt: backend.updated_at,
+  };
 }
 
 class ApiClient {
@@ -369,6 +403,23 @@ class ApiClient {
       body: JSON.stringify(bodyPayload),
     });
     return this.enrichCandidateFromBackend(backend);
+  }
+
+  async createJob(payload: JobInput): Promise<Job> {
+    const backend = await this.request<BackendJob>('/jobs/', {
+      method: 'POST',
+      body: JSON.stringify({
+        client_id: payload.clientId,
+        title: payload.title,
+        company_name: payload.companyName,
+        posting_date: payload.postingDate,
+        requirements: payload.requirements,
+        experience_required: payload.experienceRequired,
+        salary_lpa: payload.salaryLpa,
+        location: payload.location,
+      }),
+    });
+    return transformJob(backend);
   }
 }
 

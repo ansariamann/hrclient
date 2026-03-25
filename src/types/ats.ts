@@ -108,6 +108,32 @@ export interface LeftCompanyPayload {
   lastWorkingDate?: string;
 }
 
+export interface JobInput {
+  clientId?: string;
+  title: string;
+  companyName?: string;
+  postingDate?: string;
+  requirements?: string;
+  experienceRequired?: number;
+  salaryLpa?: number;
+  location?: string;
+}
+
+export interface Job {
+  id: string;
+  clientId: string;
+  title: string;
+  companyName: string;
+  postingDate: string;
+  requirements?: string;
+  experienceRequired?: number;
+  salaryLpa?: number;
+  location?: string;
+  submittedByClient?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type LeftReason =
   | 'resigned'
   | 'terminated'
