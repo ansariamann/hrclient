@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import {
   Sheet,
@@ -17,7 +18,14 @@ interface SettingsSheetProps {
 }
 
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const effectiveTheme = mounted ? resolvedTheme : theme;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -43,8 +51,9 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
               </div>
               <Switch
                 id="dark-mode"
-                checked={theme === 'dark'}
+                checked={effectiveTheme === 'dark'}
                 onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                disabled={!mounted}
               />
             </div>
 
@@ -55,6 +64,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                 size="sm"
                 className="flex-1 gap-2"
                 onClick={() => setTheme('light')}
+                disabled={!mounted}
               >
                 <Sun className="h-4 w-4" />
                 Light
@@ -64,6 +74,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                 size="sm"
                 className="flex-1 gap-2"
                 onClick={() => setTheme('dark')}
+                disabled={!mounted}
               >
                 <Moon className="h-4 w-4" />
                 Dark
@@ -73,6 +84,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                 size="sm"
                 className="flex-1 gap-2"
                 onClick={() => setTheme('system')}
+                disabled={!mounted}
               >
                 <Monitor className="h-4 w-4" />
                 System

@@ -18,6 +18,27 @@ import type {
 import { API_URL } from './config';
 import { clearAuthToken, setAuthToken } from './authToken';
 
+function normalizeApiDate(value?: string | null): string | undefined {
+  if (!value) return undefined;
+
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(trimmed)) {
+    return `${trimmed.replace(' ', 'T')}Z`;
+  }
+
+  return trimmed;
+}
+
 interface BackendCandidate {
   id: string;
   name: string;
@@ -129,7 +150,11 @@ function toFrontendCandidate(
     applicationId: application?.id || `APP-${backend.id.slice(0, 8).toUpperCase()}`,
     jobTitle: application?.job_title || undefined,
     applicationStatus: application?.status || undefined,
-    submittedAt: application?.application_date || application?.created_at || backend.created_at,
+    submittedAt:
+      normalizeApiDate(application?.application_date) ||
+      normalizeApiDate(application?.created_at) ||
+      normalizeApiDate(backend.created_at) ||
+      backend.created_at,
     name: backend.name,
     location: backend.location || undefined,
     ctcCurrent,
@@ -139,8 +164,8 @@ function toFrontendCandidate(
     experienceSummary: buildExperienceSummary(backend),
     resumeUrl,
     allowedActions: getAllowedActions(candidateState),
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
+    createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
+    updatedAt: normalizeApiDate(backend.updated_at) || backend.updated_at,
   };
 }
 
@@ -165,8 +190,8 @@ function transformJob(backend: BackendJob): Job {
     salaryLpa: backend.salary_lpa == null ? undefined : Number(backend.salary_lpa),
     location: backend.location || undefined,
     submittedByClient: backend.submitted_by_client ?? false,
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
+    createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
+    updatedAt: normalizeApiDate(backend.updated_at) || backend.updated_at,
   };
 }
 
@@ -406,18 +431,22 @@ class ApiClient {
   }
 
   async createJob(payload: JobInput): Promise<Job> {
+    const backendPayload: Record<string, unknown> = {
+      title: payload.title,
+      company_name: payload.companyName,
+      requirements: payload.requirements,
+      experience_required: payload.experienceRequired,
+      salary_lpa: payload.salaryLpa,
+      location: payload.location,
+    };
+
+    if (payload.clientId) {
+      backendPayload.client_id = payload.clientId;
+    }
+
     const backend = await this.request<BackendJob>('/jobs/', {
       method: 'POST',
-      body: JSON.stringify({
-        client_id: payload.clientId,
-        title: payload.title,
-        company_name: payload.companyName,
-        posting_date: payload.postingDate,
-        requirements: payload.requirements,
-        experience_required: payload.experienceRequired,
-        salary_lpa: payload.salaryLpa,
-        location: payload.location,
-      }),
+      body: JSON.stringify(backendPayload),
     });
     return transformJob(backend);
   }

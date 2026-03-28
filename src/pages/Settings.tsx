@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Moon, Bell, Lock, LogOut } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,22 +13,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 
-const THEME_KEY = 'client-portal-theme';
 const NOTIFICATIONS_KEY = 'client-portal-notifications-enabled';
 
 export default function Settings() {
   const { isAuthenticated, error, logout } = useAuth();
   const navigate = useNavigate();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored) return stored === 'dark';
-    return !document.documentElement.classList.contains('light');
-  });
+  const [mounted, setMounted] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
     const stored = localStorage.getItem(NOTIFICATIONS_KEY);
@@ -43,19 +39,14 @@ export default function Settings() {
   }, [error, isAuthenticated, navigate]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.remove('light');
-      localStorage.setItem(THEME_KEY, 'dark');
-    } else {
-      root.classList.add('light');
-      localStorage.setItem(THEME_KEY, 'light');
-    }
-  }, [darkMode]);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(NOTIFICATIONS_KEY, String(notificationsEnabled));
   }, [notificationsEnabled]);
+
+  const darkMode = mounted ? resolvedTheme === 'dark' : true;
 
   const resetPasswordForm = () => {
     setCurrentPassword('');
@@ -205,7 +196,11 @@ export default function Settings() {
                       Toggle between dark and light theme.
                     </p>
                   </div>
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                  <Switch
+                    checked={darkMode}
+                    onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                    disabled={!mounted}
+                  />
                 </div>
 
                 <Separator />

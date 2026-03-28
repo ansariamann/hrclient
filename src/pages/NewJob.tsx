@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Building2, CalendarDays, CheckCircle2, Loader2, MapPin, SendHorizonal } from "lucide-react";
+import { Briefcase, Building2, CheckCircle2, Loader2, MapPin, SendHorizonal } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import type { JobInput } from "@/types/ats";
 
 const initialForm: JobInput = {
   title: "",
-  postingDate: "",
   requirements: "",
   experienceRequired: undefined,
   salaryLpa: undefined,
@@ -24,7 +23,7 @@ const initialForm: JobInput = {
 
 export default function NewJob() {
   const navigate = useNavigate();
-  const { isAuthenticated, error, clientId, clientName } = useAuth();
+  const { isAuthenticated, error, clientName } = useAuth();
   const [formData, setFormData] = useState<JobInput>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmittedTitle, setLastSubmittedTitle] = useState<string | null>(null);
@@ -57,11 +56,9 @@ export default function NewJob() {
     try {
       const createdJob = await apiClient.createJob({
         ...formData,
-        clientId: clientId || undefined,
         title: formData.title.trim(),
         location: formData.location?.trim() || undefined,
         requirements: formData.requirements?.trim() || undefined,
-        postingDate: formData.postingDate || undefined,
         companyName: clientName || undefined,
       });
 
@@ -133,20 +130,6 @@ export default function NewJob() {
               </div>
 
               <div>
-                <Label htmlFor="postingDate">Posting Date</Label>
-                <div className="relative mt-2">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="postingDate"
-                    type="date"
-                    value={formData.postingDate || ""}
-                    onChange={(event) => setFormData((current) => ({ ...current, postingDate: event.target.value }))}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div>
                 <Label htmlFor="location">Location</Label>
                 <div className="relative mt-2">
                   <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -207,6 +190,9 @@ export default function NewJob() {
                   placeholder="Add responsibilities, must-have skills, notice period preference, and any hiring notes."
                   className="mt-2 min-h-[180px]"
                 />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Posting date is set automatically when you send this job to HR admin.
+                </p>
               </div>
 
               <div className="md:col-span-2 flex items-center justify-end gap-3 border-t border-border pt-5">
