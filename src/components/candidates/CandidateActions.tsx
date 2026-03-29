@@ -141,6 +141,7 @@ export function CandidateActions({ candidate, onActionComplete, timeline = [] }:
         open={openDialog === 'SCHEDULE_INTERVIEW'}
         onClose={() => setOpenDialog(null)}
         onComplete={onActionComplete}
+        roundNumber={1}
       />
 
       <RejectDialog

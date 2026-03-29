@@ -10,39 +10,27 @@ interface CandidateCardProps {
 const stateConfig = {
   TO_REVIEW: {
     label: 'Review',
-    gradient: 'from-amber-500/10 via-orange-500/5 to-transparent',
-    accent: 'bg-amber-500',
-    text: 'text-amber-600 dark:text-amber-400',
+    text: 'text-foreground',
   },
   INTERVIEW_SCHEDULED: {
     label: 'Interview',
-    gradient: 'from-blue-500/10 via-indigo-500/5 to-transparent',
-    accent: 'bg-blue-500',
-    text: 'text-blue-600 dark:text-blue-400',
+    text: 'text-foreground',
   },
   SELECTED: {
     label: 'Selected',
-    gradient: 'from-emerald-500/10 via-green-500/5 to-transparent',
-    accent: 'bg-emerald-500',
-    text: 'text-emerald-600 dark:text-emerald-400',
+    text: 'text-foreground',
   },
   JOINED: {
     label: 'Joined',
-    gradient: 'from-violet-500/10 via-purple-500/5 to-transparent',
-    accent: 'bg-violet-500',
-    text: 'text-violet-600 dark:text-violet-400',
+    text: 'text-foreground',
   },
   REJECTED: {
     label: 'Rejected',
-    gradient: 'from-rose-500/10 via-red-500/5 to-transparent',
-    accent: 'bg-rose-500',
-    text: 'text-rose-600 dark:text-rose-400',
+    text: 'text-foreground',
   },
   LEFT_COMPANY: {
     label: 'Left',
-    gradient: 'from-slate-500/10 via-gray-500/5 to-transparent',
-    accent: 'bg-slate-500',
-    text: 'text-slate-600 dark:text-slate-400',
+    text: 'text-foreground',
   },
 } as const;
 
@@ -52,15 +40,10 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`
-        relative w-full overflow-hidden rounded-xl border border-border/60 bg-card p-4 text-left
-      `}
+      className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/30"
       aria-label={`View details for ${candidate.name}`}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-50`} />
-      <div className={`absolute left-0 top-0 h-full w-1 ${config.accent}`} />
-
-      <div className="relative space-y-3">
+      <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-base font-semibold leading-tight text-foreground">
@@ -78,10 +61,10 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`rounded-full bg-background/80 px-2 py-0.5 text-xs font-medium ${config.text}`}>
+            <span className={`rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium ${config.text}`}>
               {config.label}
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
               <ArrowUpRight className="h-4 w-4" />
             </div>
           </div>
@@ -105,6 +88,12 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
         <p className="max-h-10 overflow-hidden text-xs leading-5 text-muted-foreground">
           {candidate.experienceSummary}
         </p>
+
+        {candidate.remark && (
+          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-xs leading-5 text-amber-700 dark:text-amber-300">
+            {candidate.remark}
+          </p>
+        )}
 
         {candidate.skills.length > 0 && (
           <div className="flex flex-wrap gap-1.5">

@@ -8,20 +8,10 @@ interface KanbanColumnProps {
   onCandidateClick: (candidate: Candidate) => void;
 }
 
-const stateColors: Record<CandidateState, string> = {
-  TO_REVIEW: 'bg-state-to-review',
-  INTERVIEW_SCHEDULED: 'bg-state-interview',
-  SELECTED: 'bg-state-selected',
-  JOINED: 'bg-state-joined',
-  REJECTED: 'bg-state-rejected',
-  LEFT_COMPANY: 'bg-state-rejected',
-};
-
 export function KanbanColumn({ state, candidates, onCandidateClick }: KanbanColumnProps) {
   return (
-    <div className="kanban-column flex h-full flex-col rounded-xl bg-muted/30 p-4">
+    <div className="kanban-column flex h-full flex-col rounded-xl border border-border bg-card p-4">
       <div className="mb-4 flex items-center gap-2">
-        <div className={`h-2.5 w-2.5 rounded-full ${stateColors[state]}`} />
         <h2 className="text-sm font-semibold text-foreground">
           {STATE_LABELS[state]}
         </h2>

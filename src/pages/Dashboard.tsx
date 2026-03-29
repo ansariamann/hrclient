@@ -144,20 +144,19 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            {/* Stat Cards */}
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="mb-6 grid gap-4 grid-cols-2 lg:grid-cols-4">
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className={`rounded-2xl bg-gradient-to-br ${stat.gradient} p-5 border border-border/30 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}
+                  className="rounded-2xl border border-border bg-card p-5"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-background/80 backdrop-blur-sm ${stat.iconColor}`}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                       <stat.icon className="h-4 w-4" />
                     </div>
                   </div>
                   <p className="text-3xl font-bold text-foreground tracking-tight">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium">{stat.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
             </div>

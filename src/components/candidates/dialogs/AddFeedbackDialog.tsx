@@ -52,6 +52,7 @@ export function AddFeedbackDialog({
   const [nextRoundMode, setNextRoundMode] = useState<'video' | 'phone' | 'in_person'>('video');
   const [nextRoundInterviewer, setNextRoundInterviewer] = useState('');
   const [showPreviousFeedback, setShowPreviousFeedback] = useState(false);
+  const canScheduleNextRound = roundNumber < 6;
 
   // Get previous feedback from timeline
   const previousFeedback = timeline
@@ -112,7 +113,7 @@ export function AddFeedbackDialog({
       });
 
       // If scheduling next round, do that too
-      if (scheduleNextRound) {
+      if (scheduleNextRound && canScheduleNextRound) {
         const scheduledDate = new Date(`${nextRoundDate}T${nextRoundTime}`);
         updated = await apiClient.scheduleInterview({
           candidateId: candidate.id,
@@ -261,24 +262,29 @@ export function AddFeedbackDialog({
             />
           </div>
 
-          {/* Schedule Next Round Toggle */}
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="flex items-center gap-3">
-              <CalendarPlus className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="font-medium text-sm">Schedule Next Round</p>
-                <p className="text-xs text-muted-foreground">Schedule Round {roundNumber + 1} interview</p>
+          {canScheduleNextRound ? (
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center gap-3">
+                <CalendarPlus className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-sm">Schedule Next Round</p>
+                  <p className="text-xs text-muted-foreground">Round {roundNumber + 1} will be used automatically</p>
+                </div>
               </div>
+              <Switch
+                checked={scheduleNextRound}
+                onCheckedChange={setScheduleNextRound}
+              />
             </div>
-            <Switch
-              checked={scheduleNextRound}
-              onCheckedChange={setScheduleNextRound}
-            />
-          </div>
+          ) : (
+            <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+              Round 6 is the final round in this pipeline.
+            </div>
+          )}
 
           {/* Next Round Details */}
-          {scheduleNextRound && (
-            <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/20">
+          {scheduleNextRound && canScheduleNextRound && (
+            <div className="space-y-4 rounded-lg border p-4">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
                 Round {roundNumber + 1} Details
               </p>

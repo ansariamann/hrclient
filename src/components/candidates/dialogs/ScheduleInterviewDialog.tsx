@@ -12,13 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Calendar } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +22,7 @@ interface ScheduleInterviewDialogProps {
   open: boolean;
   onClose: () => void;
   onComplete: (candidate: Candidate) => void;
-  isNextRound?: boolean;
+  roundNumber?: number;
 }
 
 export function ScheduleInterviewDialog({
@@ -36,13 +30,12 @@ export function ScheduleInterviewDialog({
   open,
   onClose,
   onComplete,
-  isNextRound = false,
+  roundNumber = 1,
 }: ScheduleInterviewDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [mode, setMode] = useState<ScheduleInterviewPayload['mode']>('video');
-  const [roundNumber, setRoundNumber] = useState(isNextRound ? 2 : 1);
   const [interviewerName, setInterviewerName] = useState('');
   const [notes, setNotes] = useState('');
   const { toast } = useToast();
@@ -94,7 +87,6 @@ export function ScheduleInterviewDialog({
     setScheduledDate('');
     setScheduledTime('');
     setMode('video');
-    setRoundNumber(isNextRound ? 2 : 1);
     setInterviewerName('');
     setNotes('');
     onClose();
@@ -106,12 +98,12 @@ export function ScheduleInterviewDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-state-interview" />
-            {isNextRound ? 'Schedule Next Interview Round' : 'Schedule Interview'}
+            {roundNumber > 1 ? `Schedule Round ${roundNumber}` : 'Schedule Interview'}
           </DialogTitle>
           <DialogDescription>
-            {isNextRound 
-              ? `Schedule the next interview round with ${candidate.name}`
-              : `Schedule an interview with ${candidate.name}`}
+            {roundNumber > 1
+              ? `Schedule round ${roundNumber} with ${candidate.name}.`
+              : `Schedule round 1 with ${candidate.name}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -140,35 +132,23 @@ export function ScheduleInterviewDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="round">Round Number</Label>
-              <Select value={String(roundNumber)} onValueChange={(v) => setRoundNumber(Number(v))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Round 1</SelectItem>
-                  <SelectItem value="2">Round 2</SelectItem>
-                  <SelectItem value="3">Round 3</SelectItem>
-                  <SelectItem value="4">Round 4</SelectItem>
-                  <SelectItem value="5">Round 5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mode">Interview Mode</Label>
-              <Select value={mode} onValueChange={(v) => setMode(v as ScheduleInterviewPayload['mode'])}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="video">Video Call</SelectItem>
-                  <SelectItem value="phone">Phone Call</SelectItem>
-                  <SelectItem value="in_person">In Person</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Round</Label>
+            <Input value={`Round ${roundNumber}`} readOnly />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mode">Interview Mode</Label>
+            <Select value={mode} onValueChange={(v) => setMode(v as ScheduleInterviewPayload['mode'])}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="video">Video Call</SelectItem>
+                <SelectItem value="phone">Phone Call</SelectItem>
+                <SelectItem value="in_person">In Person</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

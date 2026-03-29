@@ -11,6 +11,7 @@ import type {
   InterviewFeedbackPayload,
   ApiError,
   User,
+  CompanyEmployee,
   Job,
   JobInput,
 } from '@/types/ats';
@@ -44,6 +45,7 @@ interface BackendCandidate {
   name: string;
   location?: string | null;
   email?: string | null;
+  remark?: string | null;
   resume_file_path?: string | null;
   resume_url?: string | null;
   ctc_current?: number | null;
@@ -83,6 +85,15 @@ interface BackendJob {
   submitted_by_client?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface BackendCompanyEmployee {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  is_active: boolean;
+  role: string;
+  created_at: string;
 }
 
 const statusToState: Record<string, Candidate['currentState']> = {
@@ -130,6 +141,17 @@ function buildExperienceSummary(backend: BackendCandidate): string {
   return 'Experience details not provided';
 }
 
+const applicationStatusToState: Record<string, Candidate['currentState']> = {
+  RECEIVED: 'TO_REVIEW',
+  SCREENING: 'TO_REVIEW',
+  INTERVIEW_SCHEDULED: 'INTERVIEW_SCHEDULED',
+  INTERVIEWED: 'INTERVIEW_SCHEDULED',
+  OFFER_MADE: 'SELECTED',
+  HIRED: 'JOINED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'REJECTED',
+};
+
 function toFrontendCandidate(
   backend: BackendCandidate,
   application?: BackendApplication | null
@@ -143,13 +165,16 @@ function toFrontendCandidate(
     : undefined;
   const ctcCurrent = backend.ctc_current == null ? undefined : Number(backend.ctc_current);
   const ctcExpected = backend.ctc_expected == null ? undefined : Number(backend.ctc_expected);
-  const candidateState = statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW';
+  const candidateState = application?.status
+    ? (applicationStatusToState[application.status] || statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW')
+    : (statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW');
 
   return {
     id: backend.id,
     applicationId: application?.id || `APP-${backend.id.slice(0, 8).toUpperCase()}`,
     jobTitle: application?.job_title || undefined,
     applicationStatus: application?.status || undefined,
+    remark: backend.remark || undefined,
     submittedAt:
       normalizeApiDate(application?.application_date) ||
       normalizeApiDate(application?.created_at) ||
@@ -192,6 +217,17 @@ function transformJob(backend: BackendJob): Job {
     submittedByClient: backend.submitted_by_client ?? false,
     createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
     updatedAt: normalizeApiDate(backend.updated_at) || backend.updated_at,
+  };
+}
+
+function transformCompanyEmployee(backend: BackendCompanyEmployee): CompanyEmployee {
+  return {
+    id: backend.id,
+    email: backend.email,
+    fullName: backend.full_name || undefined,
+    role: backend.role,
+    isActive: backend.is_active,
+    createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
   };
 }
 
@@ -449,6 +485,11 @@ class ApiClient {
       body: JSON.stringify(backendPayload),
     });
     return transformJob(backend);
+  }
+
+  async getCompanyEmployees(): Promise<CompanyEmployee[]> {
+    const backend = await this.request<BackendCompanyEmployee[]>('/clients/me/users');
+    return backend.map(transformCompanyEmployee);
   }
 }
 

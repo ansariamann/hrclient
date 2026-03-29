@@ -19,6 +19,7 @@ export interface Candidate {
   applicationId: string;
   jobTitle?: string;
   applicationStatus?: string;
+  remark?: string;
   submittedAt?: string;
   name: string;
   location?: string;
@@ -228,4 +229,13 @@ export interface User {
   client_id: string;
   client_name?: string;
   created_at: string;
+}
+
+export interface CompanyEmployee {
+  id: string;
+  email: string;
+  fullName?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
 }
