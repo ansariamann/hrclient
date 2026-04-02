@@ -233,9 +233,41 @@ export interface User {
 
 export interface CompanyEmployee {
   id: string;
-  email: string;
-  fullName?: string;
-  role: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  department?: string;
+  dateOfJoining?: string;
+  status: string;
   isActive: boolean;
+  notes?: string;
+  candidateId?: string;
+  applicationId?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompanyEmployeeCreatePayload {
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  department?: string;
+  date_of_joining?: string;
+  status?: string;
+  is_active?: boolean;
+  notes?: string;
+}
+
+export interface CompanyEmployeeUpdatePayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  department?: string;
+  date_of_joining?: string;
+  status?: string;
+  is_active?: boolean;
+  notes?: string;
 }

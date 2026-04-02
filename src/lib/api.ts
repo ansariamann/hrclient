@@ -12,6 +12,8 @@ import type {
   ApiError,
   User,
   CompanyEmployee,
+  CompanyEmployeeCreatePayload,
+  CompanyEmployeeUpdatePayload,
   Job,
   JobInput,
 } from '@/types/ats';
@@ -89,11 +91,20 @@ interface BackendJob {
 
 interface BackendCompanyEmployee {
   id: string;
-  email: string;
-  full_name?: string | null;
+  client_id: string;
+  candidate_id?: string | null;
+  application_id?: string | null;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  department?: string | null;
+  date_of_joining?: string | null;
+  status: string;
   is_active: boolean;
-  role: string;
+  notes?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const statusToState: Record<string, Candidate['currentState']> = {
@@ -223,11 +234,19 @@ function transformJob(backend: BackendJob): Job {
 function transformCompanyEmployee(backend: BackendCompanyEmployee): CompanyEmployee {
   return {
     id: backend.id,
-    email: backend.email,
-    fullName: backend.full_name || undefined,
-    role: backend.role,
+    name: backend.name,
+    email: backend.email || undefined,
+    phone: backend.phone || undefined,
+    role: backend.role || undefined,
+    department: backend.department || undefined,
+    dateOfJoining: backend.date_of_joining ? String(backend.date_of_joining) : undefined,
+    status: backend.status,
     isActive: backend.is_active,
+    notes: backend.notes || undefined,
+    candidateId: backend.candidate_id || undefined,
+    applicationId: backend.application_id || undefined,
     createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
+    updatedAt: normalizeApiDate(backend.updated_at) || backend.updated_at,
   };
 }
 
@@ -488,8 +507,30 @@ class ApiClient {
   }
 
   async getCompanyEmployees(): Promise<CompanyEmployee[]> {
-    const backend = await this.request<BackendCompanyEmployee[]>('/clients/me/users');
+    const backend = await this.request<BackendCompanyEmployee[]>('/company-employees');
     return backend.map(transformCompanyEmployee);
+  }
+
+  async createCompanyEmployee(payload: CompanyEmployeeCreatePayload): Promise<CompanyEmployee> {
+    const backend = await this.request<BackendCompanyEmployee>('/company-employees', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return transformCompanyEmployee(backend);
+  }
+
+  async updateCompanyEmployee(id: string, payload: CompanyEmployeeUpdatePayload): Promise<CompanyEmployee> {
+    const backend = await this.request<BackendCompanyEmployee>(`/company-employees/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return transformCompanyEmployee(backend);
+  }
+
+  async deleteCompanyEmployee(id: string): Promise<void> {
+    await this.request(`/company-employees/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 
