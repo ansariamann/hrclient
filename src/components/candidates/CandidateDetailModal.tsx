@@ -141,7 +141,7 @@ export function CandidateDetailModal({ candidate, onClose, onUpdate }: Candidate
 
               {candidate.remark && (
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-foreground">Remark</h4>
+                  <h4 className="mb-2 text-sm font-medium text-foreground">Application Note</h4>
                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
                     {candidate.remark}
                   </div>

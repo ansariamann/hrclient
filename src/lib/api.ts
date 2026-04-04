@@ -64,6 +64,11 @@ interface BackendApplication {
   candidate_id: string;
   client_id: string;
   job_title?: string | null;
+  notes?: string | null;
+  note?: string | null;
+  submission_note?: string | null;
+  remark?: string | null;
+  remarks?: string | null;
   application_date: string;
   status: string;
   flagged_for_review?: boolean;
@@ -180,12 +185,19 @@ function toFrontendCandidate(
     ? (applicationStatusToState[application.status] || statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW')
     : (statusToState[backend.status || 'ACTIVE'] || 'TO_REVIEW');
 
+  const applicationNote =
+    application?.notes ||
+    application?.note ||
+    application?.submission_note ||
+    application?.remark ||
+    application?.remarks;
+
   return {
     id: backend.id,
     applicationId: application?.id || `APP-${backend.id.slice(0, 8).toUpperCase()}`,
     jobTitle: application?.job_title || undefined,
     applicationStatus: application?.status || undefined,
-    remark: backend.remark || undefined,
+    remark: backend.remark || applicationNote || undefined,
     submittedAt:
       normalizeApiDate(application?.application_date) ||
       normalizeApiDate(application?.created_at) ||
