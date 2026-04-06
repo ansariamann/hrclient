@@ -89,6 +89,17 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
           {candidate.experienceSummary}
         </p>
 
+        {candidate.applicationNote && (
+          <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-2">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+              Submission Note
+            </p>
+            <p className="text-xs leading-5 text-sky-700 dark:text-sky-300">
+              {candidate.applicationNote}
+            </p>
+          </div>
+        )}
+
         {candidate.remark && (
           <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-xs leading-5 text-amber-700 dark:text-amber-300">
             {candidate.remark}

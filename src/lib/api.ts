@@ -197,7 +197,8 @@ function toFrontendCandidate(
     applicationId: application?.id || `APP-${backend.id.slice(0, 8).toUpperCase()}`,
     jobTitle: application?.job_title || undefined,
     applicationStatus: application?.status || undefined,
-    remark: backend.remark || applicationNote || undefined,
+    applicationNote: applicationNote || undefined,
+    remark: backend.remark || undefined,
     submittedAt:
       normalizeApiDate(application?.application_date) ||
       normalizeApiDate(application?.created_at) ||

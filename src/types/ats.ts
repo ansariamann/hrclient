@@ -19,6 +19,7 @@ export interface Candidate {
   applicationId: string;
   jobTitle?: string;
   applicationStatus?: string;
+  applicationNote?: string;
   remark?: string;
   submittedAt?: string;
   name: string;
