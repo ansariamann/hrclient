@@ -199,6 +199,7 @@ function toFrontendCandidate(
     applicationStatus: application?.status || undefined,
     applicationNote: applicationNote || undefined,
     remark: backend.remark || undefined,
+    otherDetails: backend.other_details || undefined,
     submittedAt:
       normalizeApiDate(application?.application_date) ||
       normalizeApiDate(application?.created_at) ||

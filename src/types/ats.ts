@@ -21,6 +21,7 @@ export interface Candidate {
   applicationStatus?: string;
   applicationNote?: string;
   remark?: string;
+  otherDetails?: Record<string, unknown>;
   submittedAt?: string;
   name: string;
   location?: string;
