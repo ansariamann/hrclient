@@ -89,6 +89,8 @@ interface BackendJob {
   experience_required?: number | null;
   salary_lpa?: number | null;
   location?: string | null;
+  status?: string | null;
+  vacant?: boolean | null;
   submitted_by_client?: boolean;
   created_at: string;
   updated_at: string;
@@ -239,6 +241,8 @@ function transformJob(backend: BackendJob): Job {
     experienceRequired: backend.experience_required ?? undefined,
     salaryLpa: backend.salary_lpa == null ? undefined : Number(backend.salary_lpa),
     location: backend.location || undefined,
+    status: backend.status || undefined,
+    vacant: backend.vacant ?? undefined,
     submittedByClient: backend.submitted_by_client ?? false,
     createdAt: normalizeApiDate(backend.created_at) || backend.created_at,
     updatedAt: normalizeApiDate(backend.updated_at) || backend.updated_at,
@@ -518,6 +522,11 @@ class ApiClient {
       body: JSON.stringify(backendPayload),
     });
     return transformJob(backend);
+  }
+
+  async getJobs(): Promise<Job[]> {
+    const backend = await this.request<BackendJob[]>('/jobs/');
+    return backend.map(transformJob);
   }
 
   async getCompanyEmployees(): Promise<CompanyEmployee[]> {

@@ -132,6 +132,8 @@ export interface Job {
   experienceRequired?: number;
   salaryLpa?: number;
   location?: string;
+  status?: string;
+  vacant?: boolean;
   submittedByClient?: boolean;
   createdAt: string;
   updatedAt: string;

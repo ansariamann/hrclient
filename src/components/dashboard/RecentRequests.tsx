@@ -10,7 +10,7 @@ interface RecentRequestsProps {
 export function RecentRequests({ candidates, onViewCandidate }: RecentRequestsProps) {
   const recentCandidates = [...candidates]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
+    .slice(0, 10);
 
   if (recentCandidates.length === 0) return null;
 
@@ -19,10 +19,10 @@ export function RecentRequests({ candidates, onViewCandidate }: RecentRequestsPr
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Clock className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-base font-semibold text-foreground">Recent Activity</h2>
+          <h2 className="text-base font-semibold text-foreground">Application Status</h2>
         </div>
         <span className="text-xs text-muted-foreground font-medium">
-          Last {recentCandidates.length} updates
+          Last {recentCandidates.length} application statuses
         </span>
       </div>
 

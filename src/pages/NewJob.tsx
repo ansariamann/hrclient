@@ -1,6 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Building2, CheckCircle2, Loader2, MapPin, SendHorizonal } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  RefreshCcw,
+  SendHorizonal,
+} from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api";
-import type { JobInput } from "@/types/ats";
+import type { Job, JobInput } from "@/types/ats";
 
 const initialForm: JobInput = {
   title: "",
@@ -27,6 +36,9 @@ export default function NewJob() {
   const [formData, setFormData] = useState<JobInput>(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmittedTitle, setLastSubmittedTitle] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -40,9 +52,62 @@ export default function NewJob() {
     }
   }, [error, navigate]);
 
+  const loadJobs = useCallback(async () => {
+    setIsLoadingJobs(true);
+    setJobsError(null);
+
+    try {
+      const postedJobs = await apiClient.getJobs();
+      setJobs(
+        [...postedJobs].sort(
+          (left, right) =>
+            new Date(right.postingDate || right.createdAt).getTime() -
+            new Date(left.postingDate || left.createdAt).getTime()
+        )
+      );
+    } catch (loadError: any) {
+      setJobsError(loadError?.message || "Failed to load posted jobs");
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    void loadJobs();
+  }, [isAuthenticated, loadJobs]);
+
   if (!isAuthenticated) {
     return null;
   }
+
+  const formatDate = (value?: string) => {
+    if (!value) {
+      return "Not set";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getJobStatusLabel = (job: Job) => {
+    if (job.status) {
+      return job.status.replaceAll("_", " ");
+    }
+
+    return job.vacant === false ? "Closed" : "Open";
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,6 +129,8 @@ export default function NewJob() {
 
       setLastSubmittedTitle(createdJob.title);
       setFormData(initialForm);
+      setJobs((currentJobs) => [createdJob, ...currentJobs]);
+      void loadJobs();
       toast.success("Job sent to HR admin");
     } catch (submitError: any) {
       toast.error(submitError?.message || "Failed to send job to HR admin");
@@ -219,6 +286,94 @@ export default function NewJob() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 border-border/60">
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="text-xl">Posted Jobs</CardTitle>
+              <CardDescription>
+                Available jobs posted for your company are listed here.
+              </CardDescription>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadJobs()} disabled={isLoadingJobs}>
+              <RefreshCcw className={`h-4 w-4 ${isLoadingJobs ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {jobsError ? (
+              <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+                {jobsError}
+              </div>
+            ) : null}
+
+            {isLoadingJobs ? (
+              <div className="flex min-h-[140px] items-center justify-center gap-3 rounded-xl border border-dashed border-border/70 bg-muted/20">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Loading posted jobs...</span>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-sm text-muted-foreground">
+                No jobs have been posted yet for this client.
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {jobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-2xl border border-border/70 bg-background p-4 shadow-sm transition-colors hover:border-primary/30"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-base font-semibold text-foreground">{job.title}</h3>
+                            <Badge variant={job.vacant === false ? "outline" : "default"} className="uppercase">
+                              {getJobStatusLabel(job)}
+                            </Badge>
+                            {job.submittedByClient ? <Badge variant="secondary">Submitted by client</Badge> : null}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <Building2 className="h-4 w-4" />
+                              {job.companyName}
+                            </span>
+                            {job.location ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <MapPin className="h-4 w-4" />
+                                {job.location}
+                              </span>
+                            ) : null}
+                            <span className="inline-flex items-center gap-1.5">
+                              <CalendarDays className="h-4 w-4" />
+                              Posted {formatDate(job.postingDate || job.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {job.requirements ? (
+                          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{job.requirements}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Requirements were not added for this job.</p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 lg:max-w-xs lg:justify-end">
+                        {typeof job.experienceRequired === "number" ? (
+                          <Badge variant="outline">{job.experienceRequired} yrs exp</Badge>
+                        ) : null}
+                        {typeof job.salaryLpa === "number" ? (
+                          <Badge variant="outline">{job.salaryLpa} LPA</Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
