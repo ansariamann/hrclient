@@ -29,7 +29,7 @@ const mainItems = [
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Interviews", url: "/interviews", icon: CalendarCheck },
   { title: "Selected", url: "/selected", icon: UserCheck },
-  { title: "New Job", url: "/new-job", icon: Briefcase },
+  { title: "Job Requests", url: "/new-job", icon: Briefcase },
   { title: "My Company", url: "/my-company", icon: Building2 },
 ];
 
@@ -43,16 +43,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/40 bg-card">
-      <SidebarHeader className="p-4 pb-6">
+      <SidebarHeader className="p-4 pb-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
+          {/* Gradient brand icon */}
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
             <Users className="h-4 w-4" />
           </div>
           {!collapsed && (
-            <div>
+            <div className="min-w-0">
               <span className="text-sm font-bold text-foreground tracking-tight">Client Portal</span>
               {clientName && (
-                <p className="text-[11px] text-muted-foreground truncate max-w-[120px]">{clientName}</p>
+                <p className="text-[11px] text-muted-foreground truncate max-w-[120px] mt-0.5">{clientName}</p>
               )}
             </div>
           )}
@@ -62,7 +63,7 @@ export function AppSidebar() {
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-0.5">
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -71,7 +72,7 @@ export function AppSidebar() {
                     tooltip={item.title}
                     className={`rounded-xl h-10 transition-all duration-200 ${
                       isActive(item.url)
-                        ? "bg-foreground text-background hover:bg-foreground/90 shadow-sm"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -80,7 +81,7 @@ export function AppSidebar() {
                       className="flex items-center gap-3"
                       activeClassName=""
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-4 w-4 shrink-0" />
                       <span className="text-sm font-medium">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -92,7 +93,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 pb-4">
-        <SidebarMenu className="space-y-1">
+        <SidebarMenu className="space-y-0.5">
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -100,12 +101,12 @@ export function AppSidebar() {
               tooltip="Settings"
               className={`rounded-xl h-10 transition-all duration-200 ${
                 isActive("/settings")
-                  ? "bg-foreground text-background hover:bg-foreground/90"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "hover:bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
               <NavLink to="/settings" className="flex items-center gap-3" activeClassName="">
-                <Settings className="h-4 w-4" />
+                <Settings className="h-4 w-4 shrink-0" />
                 <span className="text-sm font-medium">Settings</span>
               </NavLink>
             </SidebarMenuButton>
@@ -116,7 +117,7 @@ export function AppSidebar() {
               onClick={logout}
               className="rounded-xl h-10 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-200"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 shrink-0" />
               <span className="text-sm font-medium">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

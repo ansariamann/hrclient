@@ -7,7 +7,7 @@ import { CandidateDetailModal } from '@/components/candidates/CandidateDetailMod
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api';
 import type { Candidate } from '@/types/ats';
-import { CalendarCheck, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { CalendarCheck, RefreshCw, Loader2, AlertCircle, Clock } from 'lucide-react';
 
 export default function Interviews() {
   const { isAuthenticated, error } = useAuth();
@@ -66,12 +66,12 @@ export default function Interviews() {
 
   return (
     <AppLayout>
-      <div className="container py-6">
+      <div className="p-6 max-w-[1400px] mx-auto">
         {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-              <CalendarCheck className="h-5 w-5 text-blue-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+              <CalendarCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Scheduled Interviews</h1>
@@ -86,9 +86,9 @@ export default function Interviews() {
             size="sm"
             onClick={loadCandidates}
             disabled={isLoading}
-            className="gap-2"
+            className="gap-2 rounded-xl h-9"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -96,32 +96,35 @@ export default function Interviews() {
         {/* Content */}
         {isLoading && candidates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-sm text-muted-foreground">Loading interviews...</p>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+              <Loader2 className="h-10 w-10 animate-spin text-blue-500 relative z-10" />
+            </div>
+            <p className="mt-6 text-sm text-muted-foreground">Loading interviews...</p>
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-              <AlertCircle className="h-7 w-7 text-destructive" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
-            <p className="mt-4 text-lg font-medium text-foreground">Failed to Load</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">Failed to Load</p>
             <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
-            <Button variant="outline" className="mt-4" onClick={loadCandidates}>
+            <Button variant="outline" className="mt-4 rounded-xl" onClick={loadCandidates}>
               Try Again
             </Button>
           </div>
         ) : candidates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <CalendarCheck className="h-7 w-7 text-muted-foreground" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10">
+              <Clock className="h-8 w-8 text-blue-500/50" />
             </div>
-            <p className="mt-4 text-lg font-medium text-foreground">No Scheduled Interviews</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">No Scheduled Interviews</p>
             <p className="mt-1 text-sm text-muted-foreground">
               There are no interviews currently scheduled
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {candidates.map((candidate) => (
               <CandidateCard
                 key={candidate.applicationId}

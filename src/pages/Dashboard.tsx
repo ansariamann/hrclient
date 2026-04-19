@@ -63,29 +63,37 @@ export default function Dashboard() {
       label: 'Interviews Today',
       value: interviewsToday,
       icon: CalendarCheck,
-      gradient: 'from-primary/15 to-primary/5',
-      iconColor: 'text-primary',
+      bg: 'bg-gradient-to-br from-blue-500/20 to-blue-600/5',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      border: 'border-blue-200/60 dark:border-blue-900/40',
     },
     {
       label: 'Total Scheduled',
       value: totalInterviews,
       icon: TrendingUp,
-      gradient: 'from-violet-500/15 to-violet-500/5',
-      iconColor: 'text-violet-500',
+      bg: 'bg-gradient-to-br from-violet-500/20 to-violet-600/5',
+      iconBg: 'bg-violet-500/15',
+      iconColor: 'text-violet-600 dark:text-violet-400',
+      border: 'border-violet-200/60 dark:border-violet-900/40',
     },
     {
       label: 'To Review',
       value: toReview,
       icon: Eye,
-      gradient: 'from-amber-500/15 to-amber-500/5',
-      iconColor: 'text-amber-500',
+      bg: 'bg-gradient-to-br from-amber-500/20 to-amber-600/5',
+      iconBg: 'bg-amber-500/15',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      border: 'border-amber-200/60 dark:border-amber-900/40',
     },
     {
       label: 'Total Candidates',
       value: candidates.length,
       icon: Users,
-      gradient: 'from-emerald-500/15 to-emerald-500/5',
-      iconColor: 'text-emerald-500',
+      bg: 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/5',
+      iconBg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      border: 'border-emerald-200/60 dark:border-emerald-900/40',
     },
   ];
 
@@ -95,9 +103,9 @@ export default function Dashboard() {
         {/* Page Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Candidate Review</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Candidate Pipeline</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} in your pipeline
+              {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} across your hiring pipeline
             </p>
           </div>
           <Button
@@ -148,15 +156,15 @@ export default function Dashboard() {
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-border bg-card p-5"
+                  className={`rounded-2xl border p-5 transition-shadow hover:shadow-md ${stat.border} ${stat.bg}`}
                 >
                   <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                      <stat.icon className="h-4 w-4" />
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.iconBg}`}>
+                      <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
                     </div>
                   </div>
                   <p className="text-3xl font-bold text-foreground tracking-tight">{stat.value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
+                  <p className={`mt-1 text-xs font-medium ${stat.iconColor}`}>{stat.label}</p>
                 </div>
               ))}
             </div>

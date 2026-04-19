@@ -60,11 +60,11 @@ export default function Candidates() {
 
   return (
     <AppLayout>
-      <div className="container py-6">
+      <div className="p-6 max-w-[1400px] mx-auto">
         {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -80,9 +80,9 @@ export default function Candidates() {
             size="sm"
             onClick={loadCandidates}
             disabled={isLoading}
-            className="gap-2"
+            className="gap-2 rounded-xl h-9"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -90,26 +90,29 @@ export default function Candidates() {
         {/* Content */}
         {isLoading && candidates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-sm text-muted-foreground">Loading candidates...</p>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+              <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+            </div>
+            <p className="mt-6 text-sm text-muted-foreground">Loading candidates...</p>
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-              <AlertCircle className="h-7 w-7 text-destructive" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
-            <p className="mt-4 text-lg font-medium text-foreground">Failed to Load</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">Failed to Load</p>
             <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
-            <Button variant="outline" className="mt-4" onClick={loadCandidates}>
+            <Button variant="outline" className="mt-4 rounded-xl" onClick={loadCandidates}>
               Try Again
             </Button>
           </div>
         ) : candidates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <Users className="h-7 w-7 text-muted-foreground" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <Users className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="mt-4 text-lg font-medium text-foreground">No Candidates</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">No Candidates</p>
             <p className="mt-1 text-sm text-muted-foreground">
               No candidates are currently in the pipeline
             </p>
